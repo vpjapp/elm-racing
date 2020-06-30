@@ -1,0 +1,105 @@
+module Track exposing (Track, fromTrackTiles)
+
+import Circle2d exposing (Circle2d)
+import Model exposing (TrackTile)
+import Pixels exposing (Pixels)
+import Quantity exposing (Quantity)
+import Rectangle2d exposing (Rectangle2d)
+import Model exposing(TrackTile(..))
+import Game.TwoD.Render as Render exposing (Renderable)
+
+type Coords
+    = Coords
+
+type Shape = Cir
+
+type Track
+    = Track
+        { tiles : List TrackTile
+        , circles : List (Circle2d Pixels Coords)
+        , rectagles : List (Rectangle2d Pixels Coords)
+        }
+
+track =
+    [ DownRight, DownLeft, DownRight, DownLeft, UpRight, Cross, Cross, UpLeft, Empty, UpRight, UpLeft, Empty ]
+
+fromTrackTiles : List TrackTile -> Track
+fromTrackTiles tiles = track
+
+getCoords : Int -> Int -> ( Int, Int )
+getCoords trackWidth index =
+    let
+        y =
+            index // trackWidth
+
+        x =
+            modBy trackWidth index
+    in
+    ( x, y )
+
+
+
+{-
+   1 2 3
+   4 5 6
+   7 8 9
+-}
+-- getTileDimensions : Int -> Int -> Int
+-- getTileDimensions index tileSize
+
+
+getPixels : Int -> ( Int, Int ) -> ( Int, Int )
+getPixels tileSize ( tileX, tileY ) =
+    ( tileSize * tileX, tileSize * tileY )
+
+
+renderTrack : List TrackTile -> Int -> Int -> ( Int, Int ) -> List Renderable
+renderTrack atrack screenWidth screenHeight ( trackX, trackY ) =
+    let
+        tileWidth =
+            getTileSize screenWidth trackX
+
+        tileHeight =
+            getTileSize screenHeight trackY
+
+        tileSize =
+            min tileWidth tileHeight
+    in
+    List.indexedMap
+        (\index tile ->
+            let
+                -- TODO get coords render circles rectangles etc
+                ( tileX, tileY ) =
+                    getCoords trackX index
+
+                ( pixelX, pixelY ) =
+                    getPixels tileSize ( tileX, tileY )
+            in
+            case tile of
+                Empty ->
+                    Nothing
+
+                Vertical ->
+                    Just []
+
+                Horizontal ->
+                    Nothing
+
+                UpRight ->
+                    Nothing
+
+                UpLeft ->
+                    Nothing
+
+                DownRight ->
+                    Nothing
+
+                DownLeft ->
+                    Nothing
+
+                Cross ->
+                    Nothing
+        )
+        atrack
+        |> List.filterMap identity
+        |> List.concat

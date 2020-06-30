@@ -1,0 +1,60 @@
+module FindStartCoords exposing (..)
+
+import Expect
+import Test exposing (..)
+import Array2D as Array2D
+import Track exposing (..)
+import TrackTile exposing (..)
+
+findStartCoordsTest : Test
+findStartCoordsTest =
+    describe "findStartCoords"
+        [ test "findStartCoords nothing"
+            (\_ ->
+                Expect.equal
+                    (let
+                        tiles =
+                            Array2D.fromList
+                                [ [ ' ', ' ', ' ' ]
+                                , [ ' ', ' ', ' ' ]
+                                , [ ' ', ' ', ' ' ]
+                                ]
+                                |> Array2D.map fromChar
+                     in
+                     findStartCoords tiles ( 0, 0 )
+                    )
+                    Nothing
+            )
+        ,test "findStartCoords 2,2"
+            (\_ ->
+                Expect.equal
+                    (let
+                        tiles =
+                            Array2D.fromList
+                                [ [ ' ', ' ', ' ' ]
+                                , [ ' ', ' ', ' ' ]
+                                , [ ' ', ' ', '-' ]
+                                ]
+                                |> Array2D.map fromChar
+                     in
+                     findStartCoords tiles ( 0, 0 )
+                    )
+                    (Just (2,2))
+            )
+        ,test "findStartCoords 2,1"
+            (\_ ->
+                Expect.equal
+                    (let
+                        tiles =
+                            Array2D.fromList
+                                [ [ ' ', ' ', '\\' ]
+                                , [ ' ', ' ', '|' ]
+                                , [ ' ', ' ', '-' ]
+                                ]
+                                |> Array2D.map fromChar
+                     in
+                     findStartCoords tiles ( 0, 0 )
+                    )
+                    (Just (1, 2))
+            )
+        ]

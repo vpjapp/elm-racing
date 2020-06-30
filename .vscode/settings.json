@@ -1,0 +1,11 @@
+{
+    "elm.compiler": "./node_modules/.bin/elm",
+    "elm.makeCommand": "./node_modules/.bin/elm-make",
+    "terminal.integrated.env.linux": {
+        "PATH": "./node_modules/.bin/"
+    }
+    , "elm.formatCommand": "./node_modules/.bin/elm-format",
+
+"elmLS.elmPath":"./node_modules/.bin/elm",
+"elmLS.elmFormatPath":  "./node_modules/.bin/elm-format"
+}

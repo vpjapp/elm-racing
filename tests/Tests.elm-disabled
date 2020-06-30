@@ -1,0 +1,375 @@
+module Tests exposing (..)
+
+import Array2D as Array2D
+import Expect
+import Main exposing (..)
+import Model exposing (..)
+import Test exposing (..)
+import Track exposing (..)
+import TrackTile exposing (..)
+import Update exposing (..)
+
+
+
+-- Check out http://package.elm-lang.org/packages/elm-community/elm-test/latest to learn more about testing in Elm!
+{-
+   all : Test
+   all =
+       describe "A Test Suite"
+           [ test "Addition" <|
+               \_ ->
+                   Expect.equal 10 (3 + 7)
+           , test "String.left" <|
+               \_ ->
+                   Expect.equal "a" (String.left 1 "abcdefg")
+
+           -- , test "generateTiles" <|
+           --     \_ ->
+           --         let
+           --             tileLists =
+           --                 Debug.log "TileLists" <| generateTiles 4 3 12
+           --             _ =
+           --                 List.length tileLists
+           --         in
+           --         Expect.all
+           --             [ List.length >> Expect.equal 64
+           --             , Expect.equal [ [ Empty, Empty ], [ Empty, Vertical ], [ Empty, Horizontal ], [ Empty, UpRight ], [ Empty, UpLeft ], [ Empty, DownRight ], [ Empty, DownLeft ], [ Empty, Cross ], [ Vertical, Empty ], [ Vertical, Vertical ], [ Vertical, Horizontal ], [ Vertical, UpRight ], [ Vertical, UpLeft ], [ Vertical, DownRight ], [ Vertical, DownLeft ], [ Vertical, Cross ], [ Horizontal, Empty ], [ Horizontal, Vertical ], [ Horizontal, Horizontal ], [ Horizontal, UpRight ], [ Horizontal, UpLeft ], [ Horizontal, DownRight ], [ Horizontal, DownLeft ], [ Horizontal, Cross ], [ UpRight, Empty ], [ UpRight, Vertical ], [ UpRight, Horizontal ], [ UpRight, UpRight ], [ UpRight, UpLeft ], [ UpRight, DownRight ], [ UpRight, DownLeft ], [ UpRight, Cross ], [ UpLeft, Empty ], [ UpLeft, Vertical ], [ UpLeft, Horizontal ], [ UpLeft, UpRight ], [ UpLeft, UpLeft ], [ UpLeft, DownRight ], [ UpLeft, DownLeft ], [ UpLeft, Cross ], [ DownRight, Empty ], [ DownRight, Vertical ], [ DownRight, Horizontal ], [ DownRight, UpRight ], [ DownRight, UpLeft ], [ DownRight, DownRight ], [ DownRight, DownLeft ], [ DownRight, Cross ], [ DownLeft, Empty ], [ DownLeft, Vertical ], [ DownLeft, Horizontal ], [ DownLeft, UpRight ], [ DownLeft, UpLeft ], [ DownLeft, DownRight ], [ DownLeft, DownLeft ], [ DownLeft, Cross ], [ Cross, Empty ], [ Cross, Vertical ], [ Cross, Horizontal ], [ Cross, UpRight ], [ Cross, UpLeft ], [ Cross, DownRight ], [ Cross, DownLeft ], [ Cross, Cross ] ]
+           --             ]
+           --             tileLists
+           , test "validateFirstEmpty" <|
+               \_ ->
+                   Expect.equal True (validateFirstTile [ Empty ] 4 2)
+           , test "validateFirstEmptyUpLeft" <|
+               \_ ->
+                   Expect.equal True (validateFirstTile [ UpLeft ] 4 2)
+           , test "validateFirstEmptyUpRight" <|
+               \_ ->
+                   Expect.equal False (validateFirstTile [ UpRight ] 4 2)
+           , test "isBottomBorder" <|
+               \_ ->
+                   Expect.equal True (isBottomBorder 3 3 2)
+           , test "isBottomBorderFalse" <|
+               \_ ->
+                   Expect.equal False (isBottomBorder 5 4 2)
+           , test "isTopBorder" <|
+               \_ ->
+                   Expect.equal True (isTopBorder 5 4 2)
+           , test "isTopBorderFalse" <|
+               \_ ->
+                   Expect.equal False (isTopBorder 4 4 2)
+           , test "isLeftBorder" <|
+               \_ ->
+                   Expect.equal True (isLeftBorder 4 4 2)
+           , test "isLeftBorderFalse" <|
+               \_ ->
+                   Expect.equal False (isLeftBorder 5 4 2)
+           , test "isRightBorder" <|
+               \_ ->
+                   Expect.equal True (isRightBorder 1 4 2)
+           , test "isRightBorderTrue" <|
+               \_ ->
+                   Expect.equal True (isRightBorder 5 4 2)
+           , test "bothOrNeither" <|
+               \_ ->
+                   Expect.equal True (bothOrNeither Horizontal rightTiles UpLeft leftTiles)
+           , test "bothOrNeither false" <|
+               \_ ->
+                   Expect.equal False (bothOrNeither Vertical rightTiles UpLeft leftTiles)
+           , test "isBelowValid true" <|
+               \_ ->
+                   Expect.equal True (isBelowValid Vertical (Just UpLeft))
+           , test "isBelowValid false" <|
+               \_ ->
+                   Expect.equal False (isBelowValid Horizontal (Just UpLeft))
+           , test "isRightValid true" <|
+               \_ ->
+                   Expect.equal True (isRightValid Horizontal (Just UpLeft))
+           , test "isRightValid false" <|
+               \_ ->
+                   Expect.equal False (isRightValid Horizontal (Just UpRight))
+           , test "getBelow" <|
+               \_ ->
+                   Expect.equal (Just UpLeft) (getBelow [ Empty, Empty, Vertical, Horizontal, UpLeft, UpRight, DownRight, DownLeft ] 4)
+           , test "getTileSize" <|
+               \_ ->
+                   Expect.equal 20 (getTileSize 200 10)
+           , test "getCoords" <|
+               \_ ->
+                   Expect.equal ( 1, 1 ) <| getCoords 3 4
+           , test "getCoords2" <|
+               \_ ->
+                   Expect.equal ( 2, 2 ) <| getCoords 3 8
+           , test "getCoords3" <|
+               \_ ->
+                   Expect.equal ( 4, 1 ) <| getCoords 5 9
+           ]
+
+-}
+{-
+   0 1 2 3 4
+   5 6 7 8 9
+   1011121314
+-}
+
+
+validTracks =
+    [ [ UpRight, UpLeft ]
+    , [ Empty, Empty, Empty, Empty, Empty, Empty ]
+    , [ Vertical
+
+      -- Bottom row
+      , Empty
+      , Empty
+      , UpRight
+      , Horizontal
+      , UpLeft
+      ]
+    ]
+
+
+validateTrack : Test
+validateTrack =
+    describe "Track validation tests"
+        [ test "validateFirstTile1"
+            (\_ ->
+                Expect.all
+                    (List.map (\track -> \_ -> Expect.equal True (validateFirstTile track 5 4)) validTracks)
+                    "Ignore"
+            )
+        ]
+
+
+trackFromStringTest : Test
+trackFromStringTest =
+    describe "Track functions"
+        [ test "getLongestLineLength"
+            (\_ ->
+                Expect.equal (getLongestLineLength [ "1", "asd", "1233" ]) 4
+            )
+        , test "getLongestLineLength2"
+            (\_ ->
+                Expect.equal (getLongestLineLength [ "1123123123", "asd", "1233" ]) 10
+            )
+        , test "rightPadStringRows"
+            (\_ ->
+                Expect.equal (rightPadStringRows 4 [ "11", "asd", "1233" ]) [ "11  ", "asd ", "1233" ]
+            )
+        ]
+
+
+trackTileValidationsHorizontal : Test
+trackTileValidationsHorizontal =
+    describe "Track tile validateLeftRight"
+        [ test "emptyTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight emptyTile verticalTile) True
+            )
+        , test "verticalTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight verticalTile upRightTile) True
+            )
+        , test "horizontalTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight horizontalTile downLeftTile) True
+            )
+        , test "upRightTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight upRightTile crossTile) True
+            )
+        , test "upLeftTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight upLeftTile emptyTile) True
+            )
+        , test "downRightTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight downRightTile upLeftTile) True
+            )
+        , test "downLeftTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight downLeftTile upRightTile) True
+            )
+        , test "crossTile valid"
+            (\_ ->
+                Expect.equal (validateLeftRight crossTile crossTile) True
+            )
+
+        -- Fails
+        , test "emptyTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight emptyTile crossTile) False
+            )
+        , test "verticalTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight verticalTile horizontalTile) False
+            )
+        , test "horizontalTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight horizontalTile upRightTile) False
+            )
+        , test "upRightTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight upRightTile verticalTile) False
+            )
+        , test "upLeftTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight upLeftTile crossTile) False
+            )
+        , test "downRightTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight downRightTile emptyTile) False
+            )
+        , test "downLeftTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight downLeftTile downLeftTile) False
+            )
+        , test "crossTile invalid"
+            (\_ ->
+                Expect.equal (validateLeftRight crossTile emptyTile) False
+            )
+        ]
+
+
+trackTileValidationsVertical : Test
+trackTileValidationsVertical =
+    describe "Track tile validateUpDown"
+        [ test "emptyTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown emptyTile horizontalTile) True
+            )
+        , test "verticalTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown verticalTile verticalTile) True
+            )
+        , test "horizontalTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown horizontalTile downLeftTile) True
+            )
+        , test "upRightTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown upRightTile downLeftTile) True
+            )
+        , test "upLeftTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown upLeftTile downRightTile) True
+            )
+        , test "downRightTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown downRightTile crossTile) True
+            )
+        , test "downLeftTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown downLeftTile upRightTile) True
+            )
+        , test "crossTile valid"
+            (\_ ->
+                Expect.equal (validateUpDown crossTile crossTile) True
+            )
+
+        -- Fails
+        , test "emptyTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown emptyTile crossTile) False
+            )
+        , test "verticalTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown verticalTile horizontalTile) False
+            )
+        , test "horizontalTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown horizontalTile upRightTile) False
+            )
+        , test "upRightTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown upRightTile verticalTile) False
+            )
+        , test "upLeftTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown upLeftTile crossTile) False
+            )
+        , test "downRightTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown downRightTile emptyTile) False
+            )
+        , test "downLeftTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown downLeftTile downLeftTile) False
+            )
+        , test "crossTile invalid"
+            (\_ ->
+                Expect.equal (validateUpDown crossTile emptyTile) False
+            )
+        ]
+
+
+tileFromChar : Test
+tileFromChar =
+    describe "Track tile fromChar"
+        [ test "tileFromChar /" (\_ -> Expect.equal (TrackTile.fromChar '/') (unsolved upLeftTile downRightTile))
+        , test "tileFromChar -" (\_ -> Expect.equal (TrackTile.fromChar '-') (solved horizontalTile))
+        , test "tileFromChar \\" (\_ -> Expect.equal (TrackTile.fromChar '\\') (unsolved upRightTile downLeftTile))
+        , test "tileFromChar |" (\_ -> Expect.equal (TrackTile.fromChar '|') (solved verticalTile))
+        , test "tileFromChar +" (\_ -> Expect.equal (TrackTile.fromChar '+') (solved crossTile))
+        , test "tileFromChar  " (\_ -> Expect.equal (TrackTile.fromChar ' ') (solved emptyTile))
+        ]
+
+
+
+{-
+   findStartCoordsTest : Test
+   findStartCoordsTest =
+       describe "findStartCoords"
+           [ test "findStartCoords 1"
+               (\_ ->
+                   Expect.equal
+                       (let
+                           tiles =
+                               Array2D.fromList
+                                   [ [ fromChar '/', fromChar '-', fromChar '\\' ]
+                                   , [ fromChar '|', fromChar ' ', fromChar '|' ]
+                                   , [ fromChar '\\', fromChar '-', fromChar '/' ]
+                                   ]
+                        in
+                        findStartCoords tiles ( 0, 0 )
+                       )
+                       (Just
+                           ( 1, 0 )
+                       )
+               )
+           , test "findStartCoords 2"
+               (\_ ->
+                   Expect.equal
+                       (let
+                           tiles =
+                               Array2D.fromList
+                                   [ [ '/', '\\', ' ' ]
+                                   , [ '|', '\\', '\\' ]
+                                   , [ '\\', '-', '/' ]
+                                   ]
+                                   |> Array2D.map fromChar
+                        in
+                        findStartCoords tiles ( 0, 0 )
+                       )
+                       (Just
+                           ( 0, 1 )
+                       )
+               )
+           ]
+-}
+
+
+isPossibleStartTileTest : Test
+isPossibleStartTileTest =
+    describe "isPossibleStartTileTest"
+        [ test "isPossibleStartTile crossTile"
+            (\_ -> Expect.equal (isPossibleStartTile (solved crossTile)) False)
+        , test "isPossibleStartTile emptyTile"
+            (\_ -> Expect.equal (isPossibleStartTile (solved emptyTile)) False)
+        , test "isPossibleStartTile horizontalTile"
+            (\_ -> Expect.equal (isPossibleStartTile (solved horizontalTile)) True)
+        , test "isPossibleStartTile verticalTile"
+            (\_ -> Expect.equal (isPossibleStartTile (solved verticalTile)) True)
+        , test "isPossibleStartTile unsolved ul dr"
+            (\_ -> Expect.equal (isPossibleStartTile (unsolved upLeftTile downRightTile)) False)
+        , test "isPossibleStartTile unsolved ur dl"
+            (\_ -> Expect.equal (isPossibleStartTile (unsolved upRightTile downLeftTile)) False)
+        ]
