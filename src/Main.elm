@@ -28,8 +28,6 @@ import Vector2d
 ---- MODEL ----
 
 
-
-
 trackDimensions =
     ( 4, 3 )
 
@@ -73,7 +71,7 @@ touchCoordinates touchEvent =
 
 view : Model -> Document Msg
 view model =
-    { title = "Elm Race"
+    { title = "Elm Racing"
     , body =
         [ renderCenteredWithOptions
             []
@@ -101,7 +99,6 @@ view model =
     }
 
 
-
 getTileSize : Int -> Int -> Int
 getTileSize pixels tileSize =
     pixels // tileSize
@@ -109,8 +106,8 @@ getTileSize pixels tileSize =
 
 renderDebug : Model -> List (Html Msg)
 renderDebug model =
-    [ div [] [ text "Debugs:" ] ]
-        ++ List.map
+    div [] [ text "Debugs:" ]
+        :: List.map
             (\d ->
                 div [] [ text d ]
             )
