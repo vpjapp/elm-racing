@@ -17,16 +17,30 @@ getRenderables gridWidth trackWidth points =
 getCircles : Int -> Int -> ( Int, Int ) -> Renderable
 getCircles gridWidth trackWidth ( row, col ) =
     let
+        floatCol =
+            toFloat col
+
+        floatRow =
+            toFloat row
+
+        floatGridWidth =
+            toFloat gridWidth
+
         ( x, y ) =
-            ( col * gridWidth, row * gridWidth )
+            ( tileCenter floatCol floatGridWidth, tileCenter floatRow floatGridWidth )
 
         size =
             trackWidth
     in
     shapeWithOptions circle
         { color = Color.gray
-        , position = ( toFloat x, toFloat y, 0 )
+        , position = ( x, y, 0 )
         , size = ( toFloat size, toFloat size )
         , rotation = 0
         , pivot = ( 0.5, 0.5 )
         }
+
+
+tileCenter : Float -> Float -> Float
+tileCenter index size =
+    index * size + (size / 2)

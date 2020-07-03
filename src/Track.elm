@@ -1,4 +1,5 @@
 module Track exposing (..)
+
 import Game.TwoD.Render exposing (Renderable)
 import TrackRenderables exposing (getRenderables)
 
@@ -19,19 +20,21 @@ type Track
 
 
 getWidth : Track -> Int
-getWidth (Track {points} =
+getWidth (Track { points }) =
     points
         |> List.map Tuple.second
         |> List.maximum
-        |> Maybe.withDefault 0
+        |> Maybe.withDefault -1
+        |> (+) 1
 
 
 getHeight : Track -> Int
-getHeight (Track {points} =
+getHeight (Track { points }) =
     points
         |> List.map Tuple.first
         |> List.maximum
-        |> Maybe.withDefault 0
+        |> Maybe.withDefault -1
+        |> (+) 1
 
 
 fromString : Int -> Int -> String -> Track
@@ -40,9 +43,11 @@ fromString gridWidth trackWidth str =
         |> stringToTupleList
         |> fromTuples gridWidth trackWidth
 
-fromTuples : Int -> Int -> List (Row, Col) -> Track
+
+fromTuples : Int -> Int -> List ( Row, Col ) -> Track
 fromTuples gridWidth trackWidth points =
-    Track {points = points, renderables = getRenderables gridWidth trackWidth points}
+    Track { points = points, renderables = getRenderables gridWidth trackWidth points }
+
 
 stringToTupleList : List Char -> List ( Row, Col )
 stringToTupleList list =
@@ -104,7 +109,7 @@ charToInt char =
 
 
 isValid : Track -> Bool
-isValid (Track {points}) =
+isValid (Track { points }) =
     List.length points
         > 3
         && ((List.filter
@@ -114,3 +119,8 @@ isValid (Track {points}) =
             )
                 == 0
            )
+
+
+toRenderables : Track -> List Renderable
+toRenderables (Track { renderables }) =
+    renderables

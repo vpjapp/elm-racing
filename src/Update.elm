@@ -11,6 +11,7 @@ import Model exposing (..)
 import Point2d
 import Ports exposing (..)
 import Quantity
+import Track exposing (fromString, getHeight, getWidth)
 import Vector2d
 
 
@@ -75,9 +76,9 @@ update msg model =
                     else
                         model.targetPoint
 
-                --                debug =
-                --                    addDebug model.debug
-                --                        (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
+                debug =
+                    addDebug model.debug
+                        (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
             in
             ( { model | toggler = not model.toggler } |> setTargetPoint targetPoint, Cmd.none )
 
@@ -113,8 +114,30 @@ update msg model =
 
                 camera =
                     fixedArea (w * h) ( w / 2, h / 2 )
+
+                trackString =
+                    String.replace " " "" "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
+
+                dummyTrack =
+                    fromString 0 0 (String.replace " " "" trackString)
+
+                -- 4x7
+                ySize =
+                    round h // getHeight dummyTrack
+
+                xSize =
+                    round w // getWidth dummyTrack
+
+                gridSize =
+                    min ySize xSize
+
+                trackSize =
+                    round <| toFloat gridSize * 0.9
+
+                track =
+                    fromString gridSize trackSize trackString
             in
-            ( { model | width = round w, height = round h }, Cmd.none )
+            ( { model | width = round w, height = round h, camera = camera, track = track }, Cmd.none )
 
 
 addDebug : List String -> String -> List String

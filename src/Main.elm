@@ -20,6 +20,7 @@ import Model exposing (..)
 import Platform.Sub exposing (batch)
 import Ports exposing (..)
 import Task
+import Track exposing (..)
 import Update exposing (update)
 import Vector2d
 
@@ -44,6 +45,7 @@ init =
       , toggler = False
       , width = 1200
       , height = 800
+      , track = Track.fromString 0 0 "A0"
       }
     , Cmd.batch
         [ Resources.loadTextures [ "./car.png" ]
@@ -86,9 +88,10 @@ view model =
             , size = ( model.width, model.height )
             , camera = model.camera
             }
-            (bodySpecsToObjects model.resources model.bodies
+            (toRenderables model.track
+                ++ bodySpecsToObjects model.resources model.bodies
                 ++ debugForces (getCar model) model.forces
-                ++ debugSpots
+                ++ debugSpots (toFloat model.width) (toFloat model.height)
                 ++ debugTargetPoint model.targetPoint
             )
         , button [ onClick AddBodies ] [ text "Start drivin'" ]
@@ -140,20 +143,22 @@ debugTargetPoint mTarget =
             ]
 
 
-debugSpots =
-    [ shape
-        circle
-        { color = Color.darkBlue
-        , position = ( 0, 0 )
-        , size = ( 20, 20 )
-        }
-    , shape
-        circle
-        { color = Color.lightBlue
-        , position = ( 590, 0 )
-        , size = ( 20, 20 )
-        }
+debugSpots width height =
+    [ debugSpot Color.brown (0,0)
+    , debugSpot Color.orange (width, 0)
+    , debugSpot Color.blue (width, height)
+    , debugSpot Color.yellow (0, height)
     ]
+
+debugSpot color (x, y) =
+    shapeWithOptions
+        circle
+        { color = color
+        , position = (x,y,0)
+        , size = ( 20.0, 20.0 )
+        , pivot = (0.5, 0.5)
+        , rotation = 0.0
+        }
 
 
 debugForces : Maybe BodySpec -> List Vector -> List Renderable

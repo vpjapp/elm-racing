@@ -4,6 +4,7 @@ import Browser.Dom exposing (..)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera exposing (Camera)
 import Game.TwoD.Render exposing (..)
+import Track exposing (Track)
 
 
 type alias Model =
@@ -17,6 +18,7 @@ type alias Model =
     , toggler : Bool
     , width : Int
     , height : Int
+    , track : Track
     }
 
 
@@ -60,10 +62,3 @@ type TrackTile
     | DownRight
     | DownLeft
     | Cross
-
-
-type alias Track =
-    { tiles : List TrackTile
-    , width : Int
-    , height : Int
-    }
