@@ -76,9 +76,9 @@ update msg model =
                     else
                         model.targetPoint
 
-                debug =
-                    addDebug model.debug
-                        (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
+                -- debug =
+                --     addDebug model.debug
+                --         (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
             in
             ( { model | toggler = not model.toggler } |> setTargetPoint targetPoint, Cmd.none )
 
