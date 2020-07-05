@@ -7,7 +7,7 @@ import Game.TwoD.Render exposing (..)
 import Track exposing (Track)
 
 
-type alias Model =
+type alias RaceDetails =
     { camera : Camera
     , objects : List Renderable
     , bodies : List BodySpec
@@ -16,10 +16,15 @@ type alias Model =
     , forces : List Vector
     , debug : List String
     , toggler : Bool
-    , width : Int
-    , height : Int
+    , dimensions : (Int, Int)
     , track : Track
     }
+
+
+type Model
+    = Loading { resources : Maybe Resources, dimensions : Maybe (Int, Int) }
+    | Menu { resources : Resources, dimensions : (Int, Int) }
+    | Race RaceDetails
 
 
 type alias BodySpec =

@@ -59,7 +59,6 @@ getStraights gridWidth trackWidth points =
     let
         pairs =
             getPairs points
-            |> Debug.log "Pairs"
     in
     List.map
         (pairToStraight gridWidth trackWidth)
@@ -93,30 +92,21 @@ getPairs points =
 pairToStraight : Int -> Int -> ( ( Int, Int ), ( Int, Int ) ) -> Renderable
 pairToStraight gridSize trackWidth ( start, end ) =
     let
-        _ = Debug.log "#####################" "asd"
         startTileCenter =
             tileCenterPoint start gridSize
-            |> Debug.log "startTileCenter"
 
         endTileCenter =
             tileCenterPoint end gridSize
-            |> Debug.log "endTileCenter"
 
         (centerPointX, centerPointY) = pairAvg startTileCenter endTileCenter
-            |> Debug.log "centerpoint"
 
         rowDiff = abs (Tuple.first start - Tuple.first end)
-            |> Debug.log "rowDiff"
         colDiff = abs (Tuple.second start - Tuple.second end)
-            |> Debug.log "colDiff"
 
         width = (if rowDiff == 0 then colDiff * gridSize else trackWidth)
-            |> Debug.log "Width"
 
         height = (if rowDiff /= 0 then rowDiff * gridSize else trackWidth)
-            |> Debug.log "Height"
 
-        aa = Debug.log "END #####################" "asd"
         -- Figure out if horizontal or vertical
         -- Calculate distance between points
         -- Set width and height for the square accorging to track size and distance between points

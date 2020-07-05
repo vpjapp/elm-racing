@@ -10,7 +10,7 @@ import Game.Resources as Resources exposing (Resources)
 import Game.TwoD exposing (..)
 import Game.TwoD.Camera exposing (fixedArea)
 import Game.TwoD.Render exposing (..)
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, button, div, h1, text)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Pointer as Pointer
 import Html.Events.Extra.Touch as Touch
@@ -35,18 +35,19 @@ trackDimensions =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { camera = fixedArea (1200 * 800) ( 600, 400 )
-      , objects = []
-      , bodies = [] --initialBodies
-      , resources = Resources.init
-      , targetPoint = Nothing
-      , forces = []
-      , debug = []
-      , toggler = False
-      , width = 1200
-      , height = 800
-      , track = Track.fromString 0 0 "A0"
-      }
+    ( Loading { resources = Nothing, dimensions = Nothing }
+      --     { camera = fixedArea (1200 * 800) ( 600, 400 )
+      --   , objects = []
+      --   , bodies = [] --initialBodies
+      --   , resources = Resources.init
+      --   , targetPoint = Nothing
+      --   , forces = []
+      --   , debug = []
+      --   , toggler = False
+      --   , width = 1200
+      --   , height = 800
+      --   , track = Track.fromString 0 0 "A0"
+      --   }
     , Cmd.batch
         [ Resources.loadTextures [ "./car.png" ]
             |> Cmd.map Resources
@@ -75,31 +76,42 @@ view : Model -> Document Msg
 view model =
     { title = "Elm Racing"
     , body =
-        [ renderCenteredWithOptions
-            []
-            [ Pointer.onDown (relativePos >> Just >> SetTargetPoint)
-            , Touch.onMove (touchCoordinates >> Just >> SetTargetPoint)
-            , Pointer.onMove (relativePos >> Just >> SetTargetPoint)
-            , Pointer.onUp (\_ -> SetTargetPoint Nothing)
-            , Pointer.onOut (\_ -> SetTargetPoint Nothing)
-            , Pointer.onLeave (\_ -> SetTargetPoint Nothing)
-            ]
-            { time = 0
-            , size = ( model.width, model.height )
-            , camera = model.camera
-            }
-            (toRenderables model.track
-                ++ bodySpecsToObjects model.resources model.bodies
-                ++ debugForces (getCar model) model.forces
-                ++ debugSpots (toFloat model.width) (toFloat model.height)
-                ++ debugTargetPoint model.targetPoint
-            )
-        , button [ onClick AddBodies ] [ text "Start drivin'" ]
-
-        -- , button [ onClick StepTime ] [ text "StepTime" ]
-        -- , div [] (renderDebug model)
-        ]
+        bodyView model
     }
+
+
+bodyView model =
+    case model of
+        Race mdl ->
+            [ renderCenteredWithOptions
+                []
+                [ Pointer.onDown (relativePos >> Just >> SetTargetPoint)
+                , Touch.onMove (touchCoordinates >> Just >> SetTargetPoint)
+                , Pointer.onMove (relativePos >> Just >> SetTargetPoint)
+                , Pointer.onUp (\_ -> SetTargetPoint Nothing)
+                , Pointer.onOut (\_ -> SetTargetPoint Nothing)
+                , Pointer.onLeave (\_ -> SetTargetPoint Nothing)
+                ]
+                { time = 0
+                , size = mdl.dimensions
+                , camera = mdl.camera
+                }
+                (toRenderables mdl.track
+                    ++ bodySpecsToObjects mdl.resources mdl.bodies
+                    ++ debugForces (getCar mdl) mdl.forces
+                    ++ debugSpots mdl.dimensions
+                    ++ debugTargetPoint mdl.targetPoint
+                )
+
+            -- , button [ onClick StepTime ] [ text "StepTime" ]
+            -- , div [] (renderDebug model)
+            ]
+
+        Menu mdl ->
+            [ div [] [ button [ onClick AddBodies ] [ text "Start drivin'" ] ] ]
+
+        Loading mdl ->
+            [ h1 [] [ text "Loading... Please wait." ] ]
 
 
 getTileSize : Int -> Int -> Int
@@ -107,7 +119,7 @@ getTileSize pixels tileSize =
     pixels // tileSize
 
 
-renderDebug : Model -> List (Html Msg)
+renderDebug : RaceDetails -> List (Html Msg)
 renderDebug model =
     div [] [ text "Debugs:" ]
         :: List.map
@@ -117,7 +129,7 @@ renderDebug model =
             model.debug
 
 
-getCar : Model -> Maybe BodySpec
+getCar : RaceDetails -> Maybe BodySpec
 getCar model =
     case model.bodies of
         body :: _ ->
@@ -143,20 +155,22 @@ debugTargetPoint mTarget =
             ]
 
 
-debugSpots width height =
-    [ debugSpot Color.brown (0,0)
-    , debugSpot Color.orange (width, 0)
-    , debugSpot Color.blue (width, height)
-    , debugSpot Color.yellow (0, height)
+debugSpots (width, height) =
+    [ debugSpot Color.brown ( 0, 0 )
+    , debugSpot Color.orange ( f width, 0 )
+    , debugSpot Color.blue ( f width, f height )
+    , debugSpot Color.yellow ( 0, f height )
     ]
 
-debugSpot color (x, y) =
+f = toFloat
+
+debugSpot color ( x, y ) =
     shapeWithOptions
         circle
         { color = color
-        , position = (x,y,0)
+        , position = ( x, y, 0 )
         , size = ( 20.0, 20.0 )
-        , pivot = (0.5, 0.5)
+        , pivot = ( 0.5, 0.5 )
         , rotation = 0.0
         }
 

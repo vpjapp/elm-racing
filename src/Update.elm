@@ -17,56 +17,43 @@ import Vector2d
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        Resources resMsg ->
-            ( { model
-                | resources = Resources.update resMsg model.resources
-                , objects =
-                    spriteWithOptions
-                        { texture = Resources.getTexture "./car.png" model.resources
-                        , position = ( 150, -200, 0 )
-                        , size = ( 64, 128 )
-                        , tiling = ( 0, 0 )
-                        , rotation = 2.1
-                        , pivot = ( 0.5, 0.5 )
-                        }
-                        :: model.objects
-              }
-            , Cmd.none
-            )
+    case ( msg, model ) of
+        ( Resources resMsg, Loading loadState ) ->
+            setResources resMsg loadState |> (\mdl -> ( maybeNextState mdl, Cmd.none ))
 
-        ResFail err ->
+        ( ResFail err, _ ) ->
             --let
             --    _ =
             --        Debug.todo "ResFail: " ++ err
             --in
             ( model, Cmd.none )
 
-        NoOp ->
+        ( NoOp, _ ) ->
             ( model, Cmd.none )
 
-        UpdatePhysics updatedBodies ->
-            ( { model
-                | bodies = updatedBodies
-              }
+        ( UpdatePhysics updatedBodies, Race mdl ) ->
+            ( Race
+                { mdl
+                    | bodies = updatedBodies
+                }
             , Cmd.none
             )
 
-        AddBodies ->
-            ( model, outgoingAddBodies )
+        ( AddBodies, mdl ) ->
+            ( mdl, outgoingAddBodies )
 
-        StepTime ->
-            ( model, outgoingStepTime 1.1 [] )
+        ( StepTime, mdl ) ->
+            ( mdl, outgoingStepTime 1.1 [] )
 
-        SetTargetPoint point ->
+        ( SetTargetPoint point, Race mdl ) ->
             let
                 targetPoint =
-                    if model.toggler then
+                    if mdl.toggler then
                         Maybe.map
                             (\( x, y ) ->
                                 Camera.viewportToGameCoordinates
-                                    model.camera
-                                    ( model.width, model.height )
+                                    mdl.camera
+                                    mdl.dimensions
                                     ( round x
                                     , round y
                                     )
@@ -74,21 +61,21 @@ update msg model =
                             point
 
                     else
-                        model.targetPoint
+                        mdl.targetPoint
 
                 -- debug =
                 --     addDebug model.debug
                 --         (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
             in
-            ( { model | toggler = not model.toggler } |> setTargetPoint targetPoint, Cmd.none )
+            ( Race ({ mdl | toggler = not mdl.toggler } |> setTargetPoint targetPoint), Cmd.none )
 
-        StepAnimation delta ->
+        ( StepAnimation delta, Race mdl ) ->
             let
                 accelerateToTarget =
-                    getTargetAcceleration model
+                    getTargetAcceleration mdl
 
                 slideControlForce =
-                    slideControl model
+                    slideControl mdl
 
                 forces =
                     accelerateToTarget ++ slideControlForce
@@ -99,12 +86,12 @@ update msg model =
                 --not model.toggler
             in
             if toggler then
-                ( { model | forces = forces, toggler = toggler }, outgoingStepTime delta forces )
+                ( Race { mdl | forces = forces, toggler = toggler }, outgoingStepTime delta forces )
 
             else
-                ( { model | toggler = toggler }, Cmd.none )
+                ( Race { mdl | toggler = toggler }, Cmd.none )
 
-        SetScreenSize viewport ->
+        ( SetScreenSize viewport, Loading mdl ) ->
             let
                 w =
                     viewport.viewport.width
@@ -137,7 +124,40 @@ update msg model =
                 track =
                     fromString gridSize trackSize trackString
             in
-            ( { model | width = round w, height = round h, camera = camera, track = track }, Cmd.none )
+            ( maybeNextState { mdl | dimensions = Just ( round w, round h ) }, Cmd.none )
+
+        ( _, mdl ) ->
+            ( mdl, Cmd.none )
+
+
+
+-- ( { model | width = round w, height = round h, camera = camera, track = track }, Cmd.none )
+
+
+maybeNextState mdl =
+    case ( mdl.resources, mdl.dimensions ) of
+        ( Just res, Just dimensions ) ->
+            Menu { resources = res, dimensions = dimensions }
+
+        ( _, _ ) ->
+            Loading mdl
+
+
+setResources resMsg maybeModel =
+    { maybeModel
+        | resources = Maybe.map (Resources.update resMsg) maybeModel.resources
+
+        -- , objects =
+        --     spriteWithOptions
+        --         { texture = Resources.getTexture "./car.png" model.resources
+        --         , position = ( 150, 150, 0 )
+        --         , size = ( 32, 64 )
+        --         , tiling = ( 0, 0 )
+        --         , rotation = 2.1
+        --         , pivot = ( 0.5, 0.5 )
+        --         }
+        --         :: model.objects
+    }
 
 
 addDebug : List String -> String -> List String
@@ -145,7 +165,7 @@ addDebug oldList debug =
     debug :: List.take 10 oldList
 
 
-getTargetAcceleration : Model -> List Vector
+getTargetAcceleration : RaceDetails -> List Vector
 getTargetAcceleration model =
     calculateForceFromCarAndTarget model <|
         \car ( x, y ) ->
@@ -162,7 +182,7 @@ getTargetAcceleration model =
             [ Vector2d.toUnitless vector ]
 
 
-slideControl : Model -> List Vector
+slideControl : RaceDetails -> List Vector
 slideControl model =
     calculateForceFromCar model <|
         \car ->
@@ -189,8 +209,8 @@ slideControl model =
             [ Vector2d.toUnitless forceVector ]
 
 
-calculateForceFromCarAndTarget : Model -> (BodySpec -> ( Float, Float ) -> List Vector) -> List Vector
-calculateForceFromCarAndTarget model func =
+calculateForceFromCarAndTarget : RaceDetails -> (BodySpec -> ( Float, Float ) -> List Vector) -> List Vector
+calculateForceFromCarAndTarget (model) func =
     case model.targetPoint of
         Nothing ->
             [ { x = 0, y = 0 } ]
@@ -204,8 +224,8 @@ calculateForceFromCarAndTarget model func =
                     func car ( x, y )
 
 
-calculateForceFromCar : Model -> (BodySpec -> List Vector) -> List Vector
-calculateForceFromCar model func =
+calculateForceFromCar : RaceDetails -> (BodySpec -> List Vector) -> List Vector
+calculateForceFromCar (model) func =
     case List.head model.bodies of
         Nothing ->
             [ { x = 0, y = 0 } ]
@@ -214,7 +234,7 @@ calculateForceFromCar model func =
             func car
 
 
-setTargetPoint : Maybe ( Float, Float ) -> Model -> Model
+setTargetPoint : Maybe ( Float, Float ) -> RaceDetails -> RaceDetails
 setTargetPoint point model =
     { model | targetPoint = point }
 
@@ -239,7 +259,7 @@ outgoingAddBodies =
 
 getInitialBodies : List BodySpec
 getInitialBodies =
-    [ BodySpec 600 600 16 32 1.15 100 "car-1" { x = 0, y = 0 } "car"
+    [ BodySpec 100 100 16 32 1.15 100 "car-1" { x = 0, y = 0 } "car"
     , createCircle 100 100
     , createCircle 300 300
     , createCircle 800 600

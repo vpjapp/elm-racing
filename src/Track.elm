@@ -39,7 +39,9 @@ getHeight (Track { points }) =
 
 fromString : Int -> Int -> String -> Track
 fromString gridWidth trackWidth str =
-    String.toList str
+    str
+        |> String.replace " " ""
+        |> String.toList
         |> stringToTupleList
         |> fromTuples gridWidth trackWidth
 
