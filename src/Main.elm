@@ -24,7 +24,7 @@ import Track exposing (..)
 import Update exposing (update)
 import Vector2d
 
-
+-- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
 
 ---- MODEL ----
 
@@ -35,7 +35,7 @@ trackDimensions =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Loading { resources = Nothing, dimensions = Nothing }
+    ( Loading { resources = Resources.init, dimensions = Nothing }
       --     { camera = fixedArea (1200 * 800) ( 600, 400 )
       --   , objects = []
       --   , bodies = [] --initialBodies

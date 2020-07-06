@@ -22,7 +22,7 @@ type alias RaceDetails =
 
 
 type Model
-    = Loading { resources : Maybe Resources, dimensions : Maybe (Int, Int) }
+    = Loading { resources : Resources, dimensions : Maybe (Int, Int) }
     | Menu { resources : Resources, dimensions : (Int, Int) }
     | Race RaceDetails
 

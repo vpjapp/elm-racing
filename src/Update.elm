@@ -15,11 +15,22 @@ import Track exposing (fromString, getHeight, getWidth)
 import Vector2d
 
 
+f =
+    toFloat
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case ( msg, model ) of
         ( Resources resMsg, Loading loadState ) ->
-            setResources resMsg loadState |> (\mdl -> ( maybeNextState mdl, Cmd.none ))
+            setResources resMsg loadState
+                |> (\mdl -> ( maybeNextState mdl, Cmd.none ))
+                |> Debug.log "Received Resources"
+
+        ( Resources resMsg, Menu loadState ) ->
+            setResources resMsg loadState
+                |> (\mdl -> ( Menu { loadState | resources = mdl.resources }, Cmd.none ))
+                |> Debug.log "Received Resources"
 
         ( ResFail err, _ ) ->
             --let
@@ -39,8 +50,50 @@ update msg model =
             , Cmd.none
             )
 
-        ( AddBodies, mdl ) ->
-            ( mdl, outgoingAddBodies )
+        ( AddBodies, Menu mdl ) ->
+            let
+                ( w, h ) =
+                    mdl.dimensions
+
+                camera =
+                    fixedArea (f w * f h) ( f w / 2, f h / 2 )
+
+                trackString =
+                    String.replace " " "" "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
+
+                dummyTrack =
+                    fromString 0 0 (String.replace " " "" trackString)
+
+                -- 4x7
+                ySize =
+                    h // getHeight dummyTrack
+
+                xSize =
+                    w // getWidth dummyTrack
+
+                gridSize =
+                    min ySize xSize
+
+                trackSize =
+                    round <| toFloat gridSize * 0.9
+
+                track =
+                    fromString gridSize trackSize trackString
+            in
+            ( Race
+                { camera = camera
+                , track = track
+                , dimensions = mdl.dimensions
+                , resources = mdl.resources
+                , targetPoint = Nothing
+                , toggler = False
+                , objects = []
+                , debug = []
+                , forces = []
+                , bodies = []
+                }
+            , outgoingAddBodies
+            )
 
         ( StepTime, mdl ) ->
             ( mdl, outgoingStepTime 1.1 [] )
@@ -98,31 +151,6 @@ update msg model =
 
                 h =
                     viewport.viewport.height
-
-                camera =
-                    fixedArea (w * h) ( w / 2, h / 2 )
-
-                trackString =
-                    String.replace " " "" "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
-
-                dummyTrack =
-                    fromString 0 0 (String.replace " " "" trackString)
-
-                -- 4x7
-                ySize =
-                    round h // getHeight dummyTrack
-
-                xSize =
-                    round w // getWidth dummyTrack
-
-                gridSize =
-                    min ySize xSize
-
-                trackSize =
-                    round <| toFloat gridSize * 0.9
-
-                track =
-                    fromString gridSize trackSize trackString
             in
             ( maybeNextState { mdl | dimensions = Just ( round w, round h ) }, Cmd.none )
 
@@ -130,22 +158,18 @@ update msg model =
             ( mdl, Cmd.none )
 
 
-
--- ( { model | width = round w, height = round h, camera = camera, track = track }, Cmd.none )
-
-
 maybeNextState mdl =
-    case ( mdl.resources, mdl.dimensions ) of
-        ( Just res, Just dimensions ) ->
-            Menu { resources = res, dimensions = dimensions }
+    case mdl.dimensions of
+        Just dim ->
+            Menu { resources = mdl.resources, dimensions = dim }
 
-        ( _, _ ) ->
+        _ ->
             Loading mdl
 
 
-setResources resMsg maybeModel =
-    { maybeModel
-        | resources = Maybe.map (Resources.update resMsg) maybeModel.resources
+setResources resMsg model =
+    { model
+        | resources = Resources.update resMsg model.resources
 
         -- , objects =
         --     spriteWithOptions
@@ -210,7 +234,7 @@ slideControl model =
 
 
 calculateForceFromCarAndTarget : RaceDetails -> (BodySpec -> ( Float, Float ) -> List Vector) -> List Vector
-calculateForceFromCarAndTarget (model) func =
+calculateForceFromCarAndTarget model func =
     case model.targetPoint of
         Nothing ->
             [ { x = 0, y = 0 } ]
@@ -225,7 +249,7 @@ calculateForceFromCarAndTarget (model) func =
 
 
 calculateForceFromCar : RaceDetails -> (BodySpec -> List Vector) -> List Vector
-calculateForceFromCar (model) func =
+calculateForceFromCar model func =
     case List.head model.bodies of
         Nothing ->
             [ { x = 0, y = 0 } ]

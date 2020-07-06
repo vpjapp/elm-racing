@@ -12,7 +12,7 @@ app.ports.elmToJs.subscribe(({ dataType, payload }) => {
   const res = handlers[dataType] && handlers[dataType](payload);
   //console.log('res', res);
   if (res) {
-    //console.log('Sendin jsToElm', res);
+    console.log('Sendin jsToElm', app?.ports);
     app.ports.jsToElm.send({ dataType: "UpdatedPhysics", payload: res });
   } else {
     alert(`Unknown dataType ${dataType}`);
