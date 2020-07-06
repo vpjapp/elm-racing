@@ -25,12 +25,10 @@ update msg model =
         ( Resources resMsg, Loading loadState ) ->
             setResources resMsg loadState
                 |> (\mdl -> ( maybeNextState mdl, Cmd.none ))
-                |> Debug.log "Received Resources"
 
         ( Resources resMsg, Menu loadState ) ->
             setResources resMsg loadState
                 |> (\mdl -> ( Menu { loadState | resources = mdl.resources }, Cmd.none ))
-                |> Debug.log "Received Resources"
 
         ( ResFail err, _ ) ->
             --let
