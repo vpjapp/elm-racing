@@ -12,7 +12,6 @@ app.ports.elmToJs.subscribe(({ dataType, payload }) => {
   const res = handlers[dataType] && handlers[dataType](payload);
   //console.log('res', res);
   if (res) {
-    console.log('Sendin jsToElm', app?.ports);
     app.ports.jsToElm.send({ dataType: "UpdatedPhysics", payload: res });
   } else {
     alert(`Unknown dataType ${dataType}`);
@@ -162,13 +161,13 @@ const updatePhysics = ({ delta, forces = [] }) => {
 };
 
 const getAcceleration = (speed) => {
-  const maxSpeed = 8;
+  const maxSpeed = 10;
   const maxAcc = 1;
   const minAcc = 0.001;
 
   // let acc = 0.03;
   // if (speed > 5) {
-  const  acc = 0.02;
+  const  acc = 0.25;
   // }
   // if (speed < 2) {
   //   acc = 0.2;

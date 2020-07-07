@@ -97,10 +97,10 @@ bodyView model =
                 , camera = mdl.camera
                 }
                 (toRenderables mdl.track
-                    ++ bodySpecsToObjects mdl.resources mdl.bodies
+                    ++ bodySpecsToRenderables mdl.resources mdl.bodies
                     ++ debugForces (getCar mdl) mdl.forces
                     ++ debugSpots mdl.dimensions
-                    ++ debugTargetPoint mdl.targetPoint
+                    ++ debugTargetPoint mdl.car.targetPoint
                 )
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
@@ -209,16 +209,23 @@ debugForces mBodySpec forces =
                 forces
 
 
-bodySpecsToObjects : Resources -> List BodySpec -> List Renderable
-bodySpecsToObjects resources bodies =
+bodySpecsToRenderables : Resources -> List BodySpec -> List Renderable
+bodySpecsToRenderables resources bodies =
     List.map
         (\body ->
             case body.type_ of
                 "car" ->
+                    -- shapeWithOptions circle
+                    --     { color = Color.blue
+                    --     , position = ( body.x, body.y, 0 )
+                    --     , size = ( f body.width, f body.height )
+                    --     , rotation = body.rotation
+                    --     , pivot = ( 0.5, 0.5 )
+                    --     }
                     spriteWithOptions
                         { texture = Resources.getTexture "./car.png" resources
                         , position = ( body.x, body.y, 0 )
-                        , size = ( toFloat body.width, toFloat body.height )
+                        , size = ( f body.width, f body.height )
                         , tiling = ( 1, 1 )
                         , rotation = body.rotation
                         , pivot = ( 0.5, 0.5 )
@@ -228,7 +235,7 @@ bodySpecsToObjects resources bodies =
                     shapeWithOptions circle
                         { color = Color.darkRed
                         , position = ( body.x, body.y, 0 )
-                        , size = ( toFloat body.width, toFloat body.height )
+                        , size = ( f body.width, f body.height )
                         , rotation = body.rotation
                         , pivot = ( 0.5, 0.5 )
                         }

@@ -3,7 +3,7 @@ module Update exposing (..)
 import Angle
 import Direction2d
 import Game.Resources as Resources
-import Game.TwoD.Camera as Camera exposing (fixedArea)
+import Game.TwoD.Camera as Camera exposing (fixedArea, fixedWidth)
 import Game.TwoD.Render exposing (..)
 import Json.Encode exposing (..)
 import Length
@@ -11,7 +11,7 @@ import Model exposing (..)
 import Point2d
 import Ports exposing (..)
 import Quantity
-import Track exposing (fromString, getHeight, getWidth)
+import Track exposing (fromString, getHeight, getWidth, startPoint)
 import Vector2d
 
 
@@ -41,20 +41,39 @@ update msg model =
             ( model, Cmd.none )
 
         ( UpdatePhysics updatedBodies, Race mdl ) ->
-            ( Race
-                { mdl
-                    | bodies = updatedBodies
-                }
-            , Cmd.none
-            )
+            let
+                newCar =
+                    List.head updatedBodies
+
+                oldCar =
+                    mdl.car
+            in
+            case newCar of
+                Just theCar ->
+                    let
+                        updatedCar =
+                            { oldCar | body = theCar }
+                    in
+                    ( Race
+                        { mdl
+                            | bodies = updatedBodies
+                            , car = updatedCar
+                        }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( Race
+                        { mdl
+                            | bodies = updatedBodies
+                        }
+                    , Cmd.none
+                    )
 
         ( AddBodies, Menu mdl ) ->
             let
                 ( w, h ) =
                     mdl.dimensions
-
-                camera =
-                    fixedArea (f w * f h) ( f w / 2, f h / 2 )
 
                 trackString =
                     String.replace " " "" "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
@@ -62,35 +81,44 @@ update msg model =
                 dummyTrack =
                     fromString 0 0 (String.replace " " "" trackString)
 
-                -- 4x7
-                ySize =
-                    h // getHeight dummyTrack
-
-                xSize =
-                    w // getWidth dummyTrack
-
                 gridSize =
-                    min ySize xSize
+                    2500
 
                 trackSize =
-                    round <| toFloat gridSize * 0.9
+                    2000
+
+                -- 4x7
+                ySize =
+                    gridSize * getHeight dummyTrack
+
+                xSize =
+                    gridSize * getWidth dummyTrack
+
+                camera =
+                    fixedWidth (f xSize) ( f xSize / 2, f ySize / 2 )
 
                 track =
                     fromString gridSize trackSize trackString
+
+                trackStart =
+                    startPoint track
+
+                car =
+                    createCar trackStart
             in
             ( Race
                 { camera = camera
                 , track = track
                 , dimensions = mdl.dimensions
                 , resources = mdl.resources
-                , targetPoint = Nothing
                 , toggler = False
                 , objects = []
                 , debug = []
                 , forces = []
                 , bodies = []
+                , car = car
                 }
-            , outgoingAddBodies
+            , outgoingAddBodies [ car.body ]
             )
 
         ( StepTime, mdl ) ->
@@ -112,7 +140,7 @@ update msg model =
                             point
 
                     else
-                        mdl.targetPoint
+                        mdl.car.targetPoint
 
                 -- debug =
                 --     addDebug model.debug
@@ -233,32 +261,26 @@ slideControl model =
 
 calculateForceFromCarAndTarget : RaceDetails -> (BodySpec -> ( Float, Float ) -> List Vector) -> List Vector
 calculateForceFromCarAndTarget model func =
-    case model.targetPoint of
+    case model.car.targetPoint of
         Nothing ->
             [ { x = 0, y = 0 } ]
 
         Just ( x, y ) ->
-            case List.head model.bodies of
-                Nothing ->
-                    []
-
-                Just car ->
-                    func car ( x, y )
+            func model.car.body ( x, y )
 
 
 calculateForceFromCar : RaceDetails -> (BodySpec -> List Vector) -> List Vector
 calculateForceFromCar model func =
-    case List.head model.bodies of
-        Nothing ->
-            [ { x = 0, y = 0 } ]
-
-        Just car ->
-            func car
+    func model.car.body
 
 
 setTargetPoint : Maybe ( Float, Float ) -> RaceDetails -> RaceDetails
 setTargetPoint point model =
-    { model | targetPoint = point }
+    let
+        car =
+            model.car
+    in
+    { model | car = { car | targetPoint = point } }
 
 
 outgoingStepTime : Float -> List Vector -> Cmd Msg
@@ -274,15 +296,22 @@ encodeStepTime delta forces =
         ]
 
 
-outgoingAddBodies : Cmd Msg
-outgoingAddBodies =
-    elmToJs <| OutgoingData "AddBodies" (Just (getInitialBodies |> encodeBodies))
+outgoingAddBodies : List BodySpec -> Cmd Msg
+outgoingAddBodies bodies =
+    elmToJs <| OutgoingData "AddBodies" (Just (bodies |> encodeBodies))
+
+
+createCar : ( Int, Int ) -> Car
+createCar startPoint =
+    { body = BodySpec (Tuple.first startPoint |> f) (Tuple.second startPoint |> f) 200 400 1.15 100 "car-1" { x = 0, y = 0 } "car"
+    , targetPoint = Nothing
+    , onTrack = True
+    }
 
 
 getInitialBodies : List BodySpec
 getInitialBodies =
-    [ BodySpec 100 100 16 32 1.15 100 "car-1" { x = 0, y = 0 } "car"
-    , createCircle 100 100
+    [ createCircle 100 100
     , createCircle 300 300
     , createCircle 800 600
     , createCircle 800 400
@@ -293,7 +322,7 @@ getInitialBodies =
 
 
 createCircle posX posY =
-    BodySpec posX posY 16 16 0 180000 "circle-2" { x = 0, y = 0 } "circle"
+    BodySpec posX posY 100 100 0 1800 "circle-2" { x = 0, y = 0 } "circle"
 
 
 encodeBodies : List BodySpec -> Value

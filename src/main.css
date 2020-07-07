@@ -30,3 +30,7 @@ button {
   top: 0;
   left: 0;
 }
+
+canvas {
+  background: url(../static/grass.png)
+}

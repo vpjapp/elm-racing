@@ -36,7 +36,7 @@ getCircle gridWidth trackWidth ( row, col ) =
             trackWidth
     in
     shapeWithOptions circle
-        { color = Color.gray
+        { color = Color.darkGray
         , position = ( x, y, 0 )
         , size = ( toFloat size, toFloat size )
         , rotation = 0
@@ -113,7 +113,7 @@ pairToStraight gridSize trackWidth ( start, end ) =
     in
     shapeWithOptions
         rectangle
-        { color = Color.gray
+        { color = Color.darkGray
         , position = ( centerPointX, centerPointY, 0 )
         , size = ( f width, f height )
         , pivot = (0.5, 0.5 )

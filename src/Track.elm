@@ -126,3 +126,7 @@ isValid (Track { points }) =
 toRenderables : Track -> List Renderable
 toRenderables (Track { renderables }) =
     renderables
+
+startPoint : Track -> (Int, Int)
+startPoint (Track track) =
+    track.points |> List.head |> Maybe.withDefault (100, 100)

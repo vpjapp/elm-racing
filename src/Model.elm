@@ -12,18 +12,25 @@ type alias RaceDetails =
     , objects : List Renderable
     , bodies : List BodySpec
     , resources : Resources
-    , targetPoint : Maybe ( Float, Float )
     , forces : List Vector
     , debug : List String
     , toggler : Bool
-    , dimensions : (Int, Int)
+    , dimensions : ( Int, Int )
     , track : Track
+    , car : Car
+    }
+
+
+type alias Car =
+    { body : BodySpec
+    , targetPoint : Maybe ( Float, Float )
+    , onTrack : Bool
     }
 
 
 type Model
-    = Loading { resources : Resources, dimensions : Maybe (Int, Int) }
-    | Menu { resources : Resources, dimensions : (Int, Int) }
+    = Loading { resources : Resources, dimensions : Maybe ( Int, Int ) }
+    | Menu { resources : Resources, dimensions : ( Int, Int ) }
     | Race RaceDetails
 
 
