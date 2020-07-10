@@ -164,12 +164,12 @@ update msg model =
 
                 offTrackDragForce =
                     offTrackDrag mdl.car
-                        |> Debug.log "Drag force"
 
                 forces =
-                    accelerateToTarget ++ slideControlForce
+                    accelerateToTarget
+                        ++ slideControlForce
+                        ++ offTrackDragForce
 
-                    ++ offTrackDragForce
                 toggler =
                     True
 
@@ -207,11 +207,19 @@ offTrackDrag car =
 
             direction =
                 Direction2d.from Point2d.origin point
-                |> Maybe.withDefault (Direction2d.fromAngle (Angle.degrees 0))
-                |> Direction2d.reverse
+                    |> Maybe.withDefault (Direction2d.fromAngle (Angle.degrees 0))
+                    |> Direction2d.reverse
+
+            velocity =
+                Vector2d.from Point2d.origin (Point2d.xy (Length.meters x) (Length.meters y))
+
+            speed: Float
+            speed = Vector2d.length velocity |> Length.inMeters
+
+            dragForce = speed * speed / 2000
 
             vector =
-                Vector2d.withLength (Length.meters 0.1) direction
+                Vector2d.withLength (Length.meters dragForce) direction
         in
         [ { x = Vector2d.xComponent vector |> Length.inMeters, y = Vector2d.yComponent vector |> Length.inMeters } ]
 
@@ -264,7 +272,7 @@ getTargetAcceleration model =
                 vector =
                     Vector2d.from carPos targetPoint
                         |> Vector2d.normalize
-                        |> Vector2d.scaleBy 0.22
+                        |> Vector2d.scaleBy 0.3
             in
             [ Vector2d.toUnitless vector ]
 
