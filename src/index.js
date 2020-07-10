@@ -111,12 +111,6 @@ const updatePhysics = ({ delta, forces = [] }) => {
   if (forces.length > 0 && bodies.length > 0) {
     let force = forces[0];
 
-    const speed = Vector.magnitude(body.velocity);
-    const accelerationMultiplier = getAcceleration(speed);
-
-    force = Vector.normalise(force);
-    force = Vector.mult(force, accelerationMultiplier);
-
     let force2 = forces[1];
     // force2 = Vector.normalise(force2);
     // force2 = Vector.mult(force2, 0.08);
@@ -124,8 +118,10 @@ const updatePhysics = ({ delta, forces = [] }) => {
     //console.log('BodiesForces', bodies, body.position.x, body.position.y);
     // console.log('Forces 0',force, body.position);
     // console.log('Forces 1',force2, body.position);
-    Body.applyForce(body, { x: body.position.x, y: body.position.y }, force);
-    Body.applyForce(body, { x: body.position.x, y: body.position.y }, force2);
+
+    forces.forEach(f => {
+      Body.applyForce(body, { x: body.position.x, y: body.position.y }, f);
+    })
 
     if (Vector.magnitude(force) > 0) {
       const angle = Vector.angle(force, { x: 0, y: 0 }) + Math.PI / 2;
@@ -159,35 +155,6 @@ const updatePhysics = ({ delta, forces = [] }) => {
   //console.log('PosseRes:', res);
   return res;
 };
-
-const getAcceleration = (speed) => {
-  const maxSpeed = 10;
-  const maxAcc = 1;
-  const minAcc = 0.001;
-
-  // let acc = 0.03;
-  // if (speed > 5) {
-  const  acc = 0.25;
-  // }
-  // if (speed < 2) {
-  //   acc = 0.2;
-  // } else if (speed < 5) {
-  //   acc = 0.3
-  // } else if (speed < maxSpeed) {
-  //   acc = 0.1
-  // } else {
-  //   acc = 0.01
-  // }
-
-  // // rel speed = 0 ... 1
-  // const relSpeed = Math.min(speed / maxSpeed, 1) + 0.0001;
-
-  // const acc = (1 - relSpeed) * maxAcc;
-
-  //console.log('SPEED', speed, 'acc', acc)
-
-  return Math.max(acc, minAcc);
-}
 
 const handlers = {
   PhysicsUpdate: updatePhysics,

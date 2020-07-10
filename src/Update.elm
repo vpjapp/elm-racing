@@ -42,17 +42,23 @@ update msg model =
 
         ( UpdatePhysics updatedBodies, Race mdl ) ->
             let
-                newCar =
+                newCarBody =
                     List.head updatedBodies
 
                 oldCar =
                     mdl.car
             in
-            case newCar of
-                Just theCar ->
+            case newCarBody of
+                Just theCarBody ->
                     let
+                        ( targetX, targetY ) =
+                            ( theCarBody.x, theCarBody.y )
+
                         updatedCar =
-                            { oldCar | body = theCar }
+                            { oldCar
+                                | body = theCarBody
+                                , onTrack = Track.onTrack mdl.track ( targetX, targetY )
+                            }
                     in
                     ( Race
                         { mdl
@@ -156,9 +162,14 @@ update msg model =
                 slideControlForce =
                     slideControl mdl
 
+                offTrackDragForce =
+                    offTrackDrag mdl.car
+                        |> Debug.log "Drag force"
+
                 forces =
                     accelerateToTarget ++ slideControlForce
 
+                    ++ offTrackDragForce
                 toggler =
                     True
 
@@ -182,6 +193,30 @@ update msg model =
 
         ( _, mdl ) ->
             ( mdl, Cmd.none )
+
+
+offTrackDrag : Car -> List Vector
+offTrackDrag car =
+    if not car.onTrack then
+        let
+            { x, y } =
+                car.body.velocity
+
+            point =
+                Point2d.meters x y
+
+            direction =
+                Direction2d.from Point2d.origin point
+                |> Maybe.withDefault (Direction2d.fromAngle (Angle.degrees 0))
+                |> Direction2d.reverse
+
+            vector =
+                Vector2d.withLength (Length.meters 0.1) direction
+        in
+        [ { x = Vector2d.xComponent vector |> Length.inMeters, y = Vector2d.yComponent vector |> Length.inMeters } ]
+
+    else
+        []
 
 
 maybeNextState mdl =
@@ -228,6 +263,8 @@ getTargetAcceleration model =
 
                 vector =
                     Vector2d.from carPos targetPoint
+                        |> Vector2d.normalize
+                        |> Vector2d.scaleBy 0.22
             in
             [ Vector2d.toUnitless vector ]
 

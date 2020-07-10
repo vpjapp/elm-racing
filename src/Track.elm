@@ -1,6 +1,12 @@
 module Track exposing (..)
 
+import Circle2d exposing (Circle2d)
 import Game.TwoD.Render exposing (Renderable)
+import Length exposing (Length)
+import Point2d exposing (Point2d)
+import Quantity exposing (Quantity)
+import Rectangle2d exposing (Rectangle2d)
+import TrackGeometry exposing (getCircles, getRectangles)
 import TrackRenderables exposing (getRenderables)
 
 
@@ -16,6 +22,8 @@ type Track
     = Track
         { points : List ( Row, Col )
         , renderables : List Renderable
+        , circle2ds : List (Circle2d Length.Meters Length)
+        , rectangle2ds : List (Rectangle2d Length.Meters Length)
         }
 
 
@@ -48,7 +56,12 @@ fromString gridWidth trackWidth str =
 
 fromTuples : Int -> Int -> List ( Row, Col ) -> Track
 fromTuples gridWidth trackWidth points =
-    Track { points = points, renderables = getRenderables gridWidth trackWidth points }
+    Track
+        { points = points
+        , renderables = getRenderables gridWidth trackWidth points
+        , circle2ds = getCircles gridWidth trackWidth points
+        , rectangle2ds = getRectangles gridWidth trackWidth points
+        }
 
 
 stringToTupleList : List Char -> List ( Row, Col )
@@ -127,6 +140,36 @@ toRenderables : Track -> List Renderable
 toRenderables (Track { renderables }) =
     renderables
 
-startPoint : Track -> (Int, Int)
+
+startPoint : Track -> ( Int, Int )
 startPoint (Track track) =
-    track.points |> List.head |> Maybe.withDefault (100, 100)
+    track.points |> List.head |> Maybe.withDefault ( 100, 100 )
+
+
+onTrack : Track -> ( Float, Float ) -> Bool
+onTrack (Track track) ( x, y ) =
+    List.any
+        (\rect ->
+            Rectangle2d.contains (point ( x, y )) rect
+        )
+        track.rectangle2ds
+        || List.any
+            (\circle -> Circle2d.contains (point ( x, y )) circle)
+            track.circle2ds
+
+
+point : ( Float, Float ) -> Point2d Length.Meters Length
+point ( x, y ) =
+    Point2d.fromMeters { x = x, y = y }
+
+
+f =
+    toFloat
+
+toCircles : Track -> List (Circle2d Length.Meters Length)
+toCircles (Track track) =
+    track.circle2ds
+
+toRectangles : Track -> List (Rectangle2d Length.Meters Length)
+toRectangles (Track track) =
+    track.rectangle2ds

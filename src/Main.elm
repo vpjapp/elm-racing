@@ -4,6 +4,7 @@ import Angle
 import Browser exposing (Document)
 import Browser.Dom exposing (..)
 import Browser.Events exposing (onAnimationFrameDelta)
+import Circle2d exposing (Circle2d)
 import Color exposing (Color)
 import Direction2d
 import Game.Resources as Resources exposing (Resources)
@@ -16,16 +17,22 @@ import Html.Events.Extra.Pointer as Pointer
 import Html.Events.Extra.Touch as Touch
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
+import Length exposing (Length)
 import Model exposing (..)
 import Platform.Sub exposing (batch)
+import Point2d exposing (Point2d)
 import Ports exposing (..)
+import Quantity exposing (Quantity)
+import Rectangle2d exposing (Rectangle2d)
 import Task
 import Track exposing (..)
+import TrackUtils exposing (pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
 import Vector2d
 
--- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
 
+
+-- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
 ---- MODEL ----
 
 
@@ -97,10 +104,12 @@ bodyView model =
                 , camera = mdl.camera
                 }
                 (toRenderables mdl.track
-                    ++ bodySpecsToRenderables mdl.resources mdl.bodies
                     ++ debugForces (getCar mdl) mdl.forces
-                    ++ debugSpots mdl.dimensions
+                    -- ++ debugSpots mdl.dimensions
                     ++ debugTargetPoint mdl.car.targetPoint
+                    -- ++ debugTrack mdl.track 2000
+                    ++ debugOnTrack mdl.car
+                    ++ bodySpecsToRenderables mdl.resources mdl.bodies
                 )
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
@@ -117,6 +126,19 @@ bodyView model =
 getTileSize : Int -> Int -> Int
 getTileSize pixels tileSize =
     pixels // tileSize
+
+
+debugOnTrack car =
+    [ debugSpot
+        (if car.onTrack then
+            Color.green
+
+         else
+            Color.red
+        )
+        ( car.body.x, car.body.y )
+        400
+    ]
 
 
 renderDebug : RaceDetails -> List (Html Msg)
@@ -146,30 +168,28 @@ debugTargetPoint mTarget =
             []
 
         Just ( x, y ) ->
-            [ shape
-                circle
-                { color = Color.darkRed
-                , position = ( x, y )
-                , size = ( 20, 20 )
-                }
+            [ debugSpot Color.darkRed ( x, y ) 100
             ]
 
 
-debugSpots (width, height) =
+debugSpots ( width, height ) =
     [ debugSpot Color.brown ( 0, 0 )
     , debugSpot Color.orange ( f width, 0 )
     , debugSpot Color.blue ( f width, f height )
     , debugSpot Color.yellow ( 0, f height )
     ]
 
-f = toFloat
 
-debugSpot color ( x, y ) =
+f =
+    toFloat
+
+
+debugSpot color ( x, y ) size =
     shapeWithOptions
         circle
         { color = color
         , position = ( x, y, 0 )
-        , size = ( 20.0, 20.0 )
+        , size = ( size, size )
         , pivot = ( 0.5, 0.5 )
         , rotation = 0.0
         }
@@ -201,7 +221,7 @@ debugForces mBodySpec forces =
                         rectangle
                         { color = Color.red
                         , position = ( car.x, car.y, 0 )
-                        , size = ( 2, 40 )
+                        , size = ( 20, 400 )
                         , pivot = ( 1, 0 )
                         , rotation = radians
                         }
@@ -318,3 +338,48 @@ arrayAsTuple2 a b =
                 Json.Decode.field "y" b
                     |> Json.Decode.andThen (\bVal -> Json.Decode.succeed ( aVal, bVal ))
             )
+
+
+debugTrack : Track -> Int -> List Renderable
+debugTrack track trackWidth =
+    let
+        circles =
+            Track.toCircles track
+
+        rectangles =
+            Track.toRectangles track
+    in
+    List.map
+        (\circle2d ->
+            let
+                ( centerX, centerY ) =
+                    Circle2d.centerPoint circle2d |> Point2d.toTuple Length.inMeters
+            in
+            shapeWithOptions
+                circle
+                { color = Color.lightRed
+                , position = ( centerX, centerY, 0 )
+                , size =
+                    ( Circle2d.radius circle2d |> Length.inMeters, Circle2d.radius circle2d |> Length.inMeters )
+                        |> Tuple.mapBoth ((*) 2) ((*) 2)
+                , pivot = ( 0.5, 0.5 )
+                , rotation = 0
+                }
+        )
+        circles
+        ++ List.map
+            (\rectangle2d ->
+                let
+                    ( centerX, centerY ) =
+                        Rectangle2d.centerPoint rectangle2d |> pointToTuple
+                in
+                shapeWithOptions
+                    rectangle
+                    { color = Color.lightRed
+                    , position = ( centerX, centerY, 0 )
+                    , size = Rectangle2d.dimensions rectangle2d |> tupleToFloatTuple
+                    , pivot = ( 0.5, 0.5 )
+                    , rotation = 0
+                    }
+            )
+            rectangles
