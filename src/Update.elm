@@ -3,7 +3,7 @@ module Update exposing (..)
 import Angle
 import Direction2d
 import Game.Resources as Resources
-import Game.TwoD.Camera as Camera exposing (fixedArea, fixedWidth)
+import Game.TwoD.Camera as Camera exposing (fixedHeight, fixedWidth)
 import Game.TwoD.Render exposing (..)
 import Json.Encode exposing (..)
 import Length
@@ -100,8 +100,18 @@ update msg model =
                 xSize =
                     gridSize * getWidth dummyTrack
 
+                screenRatio =
+                    f w / f h
+
+                trackRatio =
+                    f xSize / f ySize
+
                 camera =
-                    fixedWidth (f xSize) ( f xSize / 2, f ySize / 2 )
+                    if screenRatio < trackRatio then
+                        fixedWidth (f xSize) ( f xSize / 2, f ySize / 2 )
+
+                    else
+                        fixedHeight (f xSize) ( f xSize / 2, f ySize / 2 )
 
                 track =
                     fromString gridSize trackSize trackString
@@ -110,7 +120,7 @@ update msg model =
                     startPoint track
 
                 car =
-                    createCar trackStart
+                    createCar trackStart gridSize
             in
             ( Race
                 { camera = camera
@@ -213,10 +223,12 @@ offTrackDrag car =
             velocity =
                 Vector2d.from Point2d.origin (Point2d.xy (Length.meters x) (Length.meters y))
 
-            speed: Float
-            speed = Vector2d.length velocity |> Length.inMeters
+            speed : Float
+            speed =
+                Vector2d.length velocity |> Length.inMeters
 
-            dragForce = speed * speed / 2000
+            dragForce =
+                speed * speed / 2000
 
             vector =
                 Vector2d.withLength (Length.meters dragForce) direction
@@ -346,9 +358,18 @@ outgoingAddBodies bodies =
     elmToJs <| OutgoingData "AddBodies" (Just (bodies |> encodeBodies))
 
 
-createCar : ( Int, Int ) -> Car
-createCar startPoint =
-    { body = BodySpec (Tuple.first startPoint |> f) (Tuple.second startPoint |> f) 200 400 1.15 100 "car-1" { x = 0, y = 0 } "car"
+createCar : ( Int, Int ) -> Int -> Car
+createCar startPoint gridWidth =
+    { body =
+        BodySpec (Tuple.second startPoint * gridWidth |> f)
+            (Tuple.first startPoint * gridWidth |> f)
+            200
+            400
+            1.15
+            100
+            "car-1"
+            { x = 0, y = 0 }
+            "car"
     , targetPoint = Nothing
     , onTrack = True
     }
