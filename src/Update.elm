@@ -76,13 +76,13 @@ update msg model =
                     , Cmd.none
                     )
 
-        ( AddBodies, Menu mdl ) ->
+        ( AddBodies trackStr, Menu mdl ) ->
             let
                 ( w, h ) =
                     mdl.dimensions
 
                 trackString =
-                    String.replace " " "" "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
+                    String.replace " " "" trackStr
 
                 dummyTrack =
                     fromString 0 0 (String.replace " " "" trackString)

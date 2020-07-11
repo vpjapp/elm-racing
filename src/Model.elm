@@ -58,7 +58,7 @@ type Msg
     | Resources Resources.Msg
     | ResFail String
     | UpdatePhysics (List BodySpec)
-    | AddBodies
+    | AddBodies String
     | StepTime
     | SetTargetPoint (Maybe ( Float, Float ))
     | StepAnimation Float

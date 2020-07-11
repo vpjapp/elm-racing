@@ -35,6 +35,20 @@ import Vector2d
 -- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
 ---- MODEL ----
 
+--   0 1 2 3 4 5 6 7
+-- F
+-- E
+-- D
+-- C
+-- B
+-- A
+tracks =
+    [ "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
+    , "E0 E8 A8 A0"
+    , "E0 E3 A3 A6 C6 C0"
+    , "F0 F1 B1 B2 F2 F3 B3 B4 F4 F5 A5 A0"
+    ]
+
 
 trackDimensions =
     ( 4, 3 )
@@ -117,7 +131,11 @@ bodyView model =
             ]
 
         Menu mdl ->
-            [ div [] [ button [ onClick AddBodies ] [ text "Start drivin'" ] ] ]
+            List.map
+                (\trackStr ->
+                    div [] [ button [ onClick <| AddBodies trackStr ] [ text <| "Start drivin' " ++ trackStr ] ]
+                )
+                tracks
 
         Loading mdl ->
             [ h1 [] [ text "Loading... Please wait." ] ]

@@ -25,12 +25,6 @@ img {
   max-width: 200px;
 }
 
-button {
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
 canvas {
   background: url(../static/grass.png)
 }
