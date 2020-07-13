@@ -47,6 +47,7 @@ tracks =
     , "E0 E8 A8 A0"
     , "E0 E3 A3 A6 C6 C0"
     , "F0 F1 B1 B2 F2 F3 B3 B4 F4 F5 A5 A0"
+    , "E0 E2 D2 D4 F4 F3 C3 C1 A1 A3 B3 B0"
     ]
 
 
