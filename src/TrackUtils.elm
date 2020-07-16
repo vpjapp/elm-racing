@@ -55,3 +55,7 @@ pointToIntTuple point =
 tupleToFloatTuple: (Length , Length) -> (Float, Float)
 tupleToFloatTuple tuple  =
     tuple |> Tuple.mapBoth Length.inMeters Length.inMeters
+
+tupleToPoint : (Float, Float) -> Point2d Length.Meters Length
+tupleToPoint (x, y) =
+    Point2d.xy (Length.meters x) (Length.meters y)

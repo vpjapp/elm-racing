@@ -7,11 +7,14 @@ import Game.Resources as Resources
 import Game.TwoD.Camera as Camera exposing (Camera, fixedHeight, fixedWidth)
 import Game.TwoD.Render exposing (..)
 import Json.Encode exposing (..)
+import LapTimer exposing (..)
 import Length
 import Model exposing (..)
 import Point2d exposing (Point2d)
 import Ports exposing (..)
 import Quantity
+import Task as Task exposing (perform)
+import Time as Time exposing (now)
 import Track exposing (fromString, getHeight, getWidth, startPoint)
 import TrackUtils exposing (pointToTuple)
 import Vector2d
@@ -137,9 +140,15 @@ update msg model =
                 carControlCircle =
                     Circle2d.withRadius (Length.meters 300) carControlPoint
 
+                circles =
+                    Track.toCircles track
+
+                lapTimer =
+                    LapTimer.timer circles (Track.toRectangles track)
+
                 car =
                     -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
-                    createCar trackStart gridSize Self
+                    createCar trackStart gridSize Self lapTimer
             in
             ( Race
                 { camera = camera
@@ -153,7 +162,7 @@ update msg model =
                 , bodies = []
                 , car = car
                 }
-            , outgoingAddBodies [ car.body ]
+            , Cmd.batch [ outgoingAddBodies [ car.body ], Task.perform StartTimer Time.now ]
             )
 
         ( StepTime, mdl ) ->
@@ -201,10 +210,26 @@ update msg model =
                 toggler =
                     True
 
+                car =
+                    mdl.car
+
+                lapTimer =
+                    LapTimer.update mdl.car.lapTimer ( mdl.car.body.x, mdl.car.body.y ) delta
+
+                car_ =
+                    { car | lapTimer = lapTimer }
+
                 --not model.toggler
             in
             if toggler then
-                ( Race { mdl | forces = forces, toggler = toggler }, outgoingStepTime delta forces )
+                ( Race
+                    { mdl
+                        | forces = forces
+                        , toggler = toggler
+                        , car = car_
+                    }
+                , outgoingStepTime delta forces
+                )
 
             else
                 ( Race { mdl | toggler = toggler }, Cmd.none )
@@ -381,8 +406,8 @@ outgoingAddBodies bodies =
     elmToJs <| OutgoingData "AddBodies" (Just (bodies |> encodeBodies))
 
 
-createCar : ( Int, Int ) -> Int -> CarControlPoint -> Car
-createCar startIndex gridWidth carControl =
+createCar : ( Int, Int ) -> Int -> CarControlPoint -> LapTimer -> Car
+createCar startIndex gridWidth carControl lapTimer =
     { body =
         BodySpec (Tuple.second startIndex * gridWidth |> f)
             (Tuple.first startIndex * gridWidth |> f)
@@ -396,6 +421,7 @@ createCar startIndex gridWidth carControl =
     , targetPoint = Nothing
     , onTrack = True
     , carControl = carControl
+    , lapTimer = lapTimer
     }
 
 

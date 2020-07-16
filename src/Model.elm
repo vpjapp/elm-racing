@@ -1,16 +1,16 @@
 module Model exposing (..)
 
 import Browser.Dom exposing (..)
+import Circle2d exposing (Circle2d)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera exposing (Camera)
 import Game.TwoD.Render exposing (..)
-import Track exposing (Track)
-import Length exposing (Length)
+import Length exposing (Length, Meters)
 import Pixels exposing (Pixels)
 import Point2d exposing (Point2d)
-import Circle2d exposing (Circle2d)
-import Length exposing (Meters)
-
+import Time exposing (Posix)
+import Track exposing (Track)
+import LapTimer exposing (..)
 
 type alias RaceDetails =
     { camera : Camera
@@ -31,14 +31,17 @@ type alias Car =
     , targetPoint : Maybe ( Float, Float )
     , onTrack : Bool
     , carControl : CarControlPoint
+    , lapTimer : LapTimer
     }
+
 
 type CarControlPoint
     = Self
-    | Point {
-        point: Point2d Meters Length,
-        circle: Circle2d Meters Length
-    }
+    | Point
+        { point : Point2d Meters Length
+        , circle : Circle2d Meters Length
+        }
+
 
 type Model
     = Loading { resources : Resources, dimensions : Maybe ( Int, Int ) }
@@ -75,6 +78,7 @@ type Msg
     | SetTargetPoint (Maybe ( Float, Float ))
     | StepAnimation Float
     | SetScreenSize Viewport
+    | StartTimer Posix
 
 
 type TrackTile
