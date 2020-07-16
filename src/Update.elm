@@ -1,17 +1,19 @@
 module Update exposing (..)
 
 import Angle
+import Circle2d exposing (Circle2d)
 import Direction2d
 import Game.Resources as Resources
-import Game.TwoD.Camera as Camera exposing (fixedHeight, fixedWidth)
+import Game.TwoD.Camera as Camera exposing (Camera, fixedHeight, fixedWidth)
 import Game.TwoD.Render exposing (..)
 import Json.Encode exposing (..)
 import Length
 import Model exposing (..)
-import Point2d
+import Point2d exposing (Point2d)
 import Ports exposing (..)
 import Quantity
 import Track exposing (fromString, getHeight, getWidth, startPoint)
+import TrackUtils exposing (pointToTuple)
 import Vector2d
 
 
@@ -111,7 +113,7 @@ update msg model =
                         fixedWidth (f xSize) ( f xSize / 2, f ySize / 2 )
 
                     else
-                        fixedHeight (f xSize) ( f xSize / 2, f ySize / 2 )
+                        fixedHeight (f ySize) ( f xSize / 2, f ySize / 2 )
 
                 track =
                     fromString gridSize trackSize trackString
@@ -119,8 +121,25 @@ update msg model =
                 trackStart =
                     startPoint track
 
+                ( ccX, ccY ) =
+                    Camera.viewportToGameCoordinates
+                        camera
+                        mdl.dimensions
+                        ( w - 200
+                        , h - 200
+                        )
+
+                carControlPoint =
+                    Point2d.meters ccX ccY
+
+                -- carControlPoint =
+                --     Point2d.meters ((w - 1) * gridSize |> f) (round gridSize |> f)
+                carControlCircle =
+                    Circle2d.withRadius (Length.meters 300) carControlPoint
+
                 car =
-                    createCar trackStart gridSize
+                    -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
+                    createCar trackStart gridSize Self
             in
             ( Race
                 { camera = camera
@@ -143,21 +162,20 @@ update msg model =
         ( SetTargetPoint point, Race mdl ) ->
             let
                 targetPoint =
-                    if mdl.toggler then
-                        Maybe.map
-                            (\( x, y ) ->
-                                Camera.viewportToGameCoordinates
-                                    mdl.camera
-                                    mdl.dimensions
-                                    ( round x
-                                    , round y
-                                    )
-                            )
-                            point
+                    -- if mdl.toggler then
+                    Maybe.map
+                        (\( x, y ) ->
+                            Camera.viewportToGameCoordinates
+                                mdl.camera
+                                mdl.dimensions
+                                ( round x
+                                , round y
+                                )
+                        )
+                        point
 
-                    else
-                        mdl.car.targetPoint
-
+                -- else
+                --     mdl.car.targetPoint
                 -- debug =
                 --     addDebug model.debug
                 --         (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
@@ -276,10 +294,15 @@ getTargetAcceleration model =
         \car ( x, y ) ->
             let
                 targetPoint =
-                    Point2d.unitless x y
+                    Point2d.meters x y
 
                 carPos =
-                    Point2d.unitless car.x car.y
+                    case car.carControl of
+                        Self ->
+                            Point2d.meters car.body.x car.body.y
+
+                        Point details ->
+                            details.point
 
                 vector =
                     Vector2d.from carPos targetPoint
@@ -316,14 +339,14 @@ slideControl model =
             [ Vector2d.toUnitless forceVector ]
 
 
-calculateForceFromCarAndTarget : RaceDetails -> (BodySpec -> ( Float, Float ) -> List Vector) -> List Vector
+calculateForceFromCarAndTarget : RaceDetails -> (Car -> ( Float, Float ) -> List Vector) -> List Vector
 calculateForceFromCarAndTarget model func =
     case model.car.targetPoint of
         Nothing ->
             [ { x = 0, y = 0 } ]
 
         Just ( x, y ) ->
-            func model.car.body ( x, y )
+            func model.car ( x, y )
 
 
 calculateForceFromCar : RaceDetails -> (BodySpec -> List Vector) -> List Vector
@@ -358,11 +381,11 @@ outgoingAddBodies bodies =
     elmToJs <| OutgoingData "AddBodies" (Just (bodies |> encodeBodies))
 
 
-createCar : ( Int, Int ) -> Int -> Car
-createCar startPoint gridWidth =
+createCar : ( Int, Int ) -> Int -> CarControlPoint -> Car
+createCar startIndex gridWidth carControl =
     { body =
-        BodySpec (Tuple.second startPoint * gridWidth |> f)
-            (Tuple.first startPoint * gridWidth |> f)
+        BodySpec (Tuple.second startIndex * gridWidth |> f)
+            (Tuple.first startIndex * gridWidth |> f)
             200
             400
             1.15
@@ -372,6 +395,7 @@ createCar startPoint gridWidth =
             "car"
     , targetPoint = Nothing
     , onTrack = True
+    , carControl = carControl
     }
 
 

@@ -5,6 +5,11 @@ import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera exposing (Camera)
 import Game.TwoD.Render exposing (..)
 import Track exposing (Track)
+import Length exposing (Length)
+import Pixels exposing (Pixels)
+import Point2d exposing (Point2d)
+import Circle2d exposing (Circle2d)
+import Length exposing (Meters)
 
 
 type alias RaceDetails =
@@ -25,8 +30,15 @@ type alias Car =
     { body : BodySpec
     , targetPoint : Maybe ( Float, Float )
     , onTrack : Bool
+    , carControl : CarControlPoint
     }
 
+type CarControlPoint
+    = Self
+    | Point {
+        point: Point2d Meters Length,
+        circle: Circle2d Meters Length
+    }
 
 type Model
     = Loading { resources : Resources, dimensions : Maybe ( Int, Int ) }

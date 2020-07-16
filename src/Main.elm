@@ -34,7 +34,6 @@ import Vector2d
 
 -- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
 ---- MODEL ----
-
 --   0 1 2 3 4 5 6 7
 -- F
 -- E
@@ -42,6 +41,8 @@ import Vector2d
 -- C
 -- B
 -- A
+
+
 tracks =
     [ "E0 E2 D2 D4 B4 B2 A2 A1 C1 C0"
     , "E0 E8 A8 A0"
@@ -125,6 +126,7 @@ bodyView model =
                     -- ++ debugTrack mdl.track 2000
                     ++ debugOnTrack mdl.car
                     ++ bodySpecsToRenderables mdl.resources mdl.bodies
+                    ++ renderControlPoint mdl.car
                 )
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
@@ -145,6 +147,30 @@ bodyView model =
 getTileSize : Int -> Int -> Int
 getTileSize pixels tileSize =
     pixels // tileSize
+
+
+renderControlPoint : Car -> List Renderable
+renderControlPoint car =
+    case car.carControl of
+        Self ->
+            []
+
+        Point control ->
+            let
+                ( x, y ) =
+                    pointToTuple control.point
+
+                radius =
+                    Circle2d.radius control.circle |> Length.inMeters
+            in
+            [ shapeWithOptions circle
+                { color = Color.green
+                , position = ( x, y, 0 )
+                , size = ( radius, radius )
+                , rotation = 0
+                , pivot = ( 0.5, 0.5 )
+                }
+            ]
 
 
 debugOnTrack car =
