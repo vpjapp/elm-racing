@@ -26,12 +26,27 @@ type TrackSequence
     = Circle (Circle2d Length.Meters Length)
     | Rectangle (Rectangle2d Length.Meters Length)
 
-dummyCircle: Circle2d Length.Meters Length
-dummyCircle = Circle2d.withRadius (Length.meters 10) (tupleToPoint (0,0))
+
+dummyCircle : Circle2d Length.Meters Length
+dummyCircle =
+    Circle2d.withRadius (Length.meters 10) (tupleToPoint ( 0, 0 ))
+
 
 next : LapTimer -> TrackSequence
 next (LapTimer data) =
     data.next
+
+
+nextPoint : LapTimer -> ( Float, Float )
+nextPoint (LapTimer data) =
+    case data.next of
+        Rectangle rect ->
+            Rectangle2d.centerPoint rect
+                |> TrackUtils.pointToTuple
+
+        Circle circ ->
+            Circle2d.centerPoint circ
+                |> TrackUtils.pointToTuple
 
 
 getLapNumber : LapTimer -> Int
@@ -54,9 +69,11 @@ update (LapTimer data) ( x, y ) deltaTime =
         LapTimer (moveToNext data deltaTime)
 
     else
-        LapTimer {data | offset = data.offset + deltaTime }
+        LapTimer { data | offset = data.offset + deltaTime }
 
-
+-- BUG HERE
+-- The lap should change one step further on. Now it changes when the next -point to the first rectangle
+-- it should change only when the first rectangle is reached.
 moveToNext : LapTimerData -> Float -> LapTimerData
 moveToNext data deltaTime =
     case data.upcoming of
@@ -70,7 +87,7 @@ moveToNext data deltaTime =
                 first :: rest ->
                     { past = []
                     , next = first
-                    , upcoming = rest
+                    , upcoming = rest ++ [ data.next ]
                     , lapNumber = data.lapNumber + 1
                     , offset = 0
                     }
@@ -89,15 +106,15 @@ addOffset (LapTimer data) delta =
     LapTimer { data | offset = data.offset + delta }
 
 
-timer : List (Circle2d Length.Meters Length) -> List (Rectangle2d Length.Meters Length) -> LapTimer
-timer circles rectangles =
-    case circles of
-        firstCircle :: restCircles ->
+timer : {- List (Circle2d Length.Meters Length) -> -} List (Rectangle2d Length.Meters Length) -> LapTimer
+timer {- circles -} rectangles =
+    case rectangles of
+        firstRectangles :: restRectangles ->
             LapTimer
                 { past = []
-                , next = Circle firstCircle
-                , upcoming = interweave (List.map Rectangle rectangles) (List.drop 1 (List.map Circle restCircles))
-                , lapNumber = 0
+                , next = Rectangle firstRectangles
+                , upcoming = List.map Rectangle restRectangles
+                , lapNumber = 1
                 , offset = 0
                 }
 
@@ -109,3 +126,8 @@ timer circles rectangles =
                 , lapNumber = 0
                 , offset = 0
                 }
+
+
+text : LapTimer -> String
+text (LapTimer data) =
+    "Lap " ++ String.fromInt data.lapNumber ++ ": " ++ String.fromFloat (data.offset / 1000)

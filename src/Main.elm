@@ -29,7 +29,8 @@ import Track exposing (..)
 import TrackUtils exposing (pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
 import Vector2d
-
+import Html.Attributes exposing (class)
+import LapTimer exposing (LapTimer)
 
 
 -- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
@@ -120,6 +121,7 @@ bodyView model =
                 , camera = mdl.camera
                 }
                 (toRenderables mdl.track
+                    ++ debugLapTimer mdl.car.lapTimer
                     ++ debugForces (getCar mdl) mdl.forces
                     -- ++ debugSpots mdl.dimensions
                     ++ debugTargetPoint mdl.car.targetPoint
@@ -131,6 +133,7 @@ bodyView model =
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
             -- , div [] (renderDebug model)
+                , div [ class "lap-timer" ][ text (LapTimer.text mdl.car.lapTimer)]
             ]
 
         Menu mdl ->
@@ -273,6 +276,12 @@ debugForces mBodySpec forces =
                 )
                 forces
 
+debugLapTimer: LapTimer -> List Renderable
+debugLapTimer lapTimer =
+    let
+        center = LapTimer.nextPoint lapTimer
+    in
+    [debugSpot Color.darkOrange center 200]
 
 bodySpecsToRenderables : Resources -> List BodySpec -> List Renderable
 bodySpecsToRenderables resources bodies =

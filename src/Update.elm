@@ -140,11 +140,8 @@ update msg model =
                 carControlCircle =
                     Circle2d.withRadius (Length.meters 300) carControlPoint
 
-                circles =
-                    Track.toCircles track
-
                 lapTimer =
-                    LapTimer.timer circles (Track.toRectangles track)
+                    LapTimer.timer (Track.toRectangles track)
 
                 car =
                     -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
