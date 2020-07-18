@@ -133,7 +133,7 @@ bodyView model =
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
             -- , div [] (renderDebug model)
-                , div [ class "lap-timer" ][ text (LapTimer.text mdl.car.lapTimer)]
+                , div [ class "lap-timer" ] (LapTimer.render mdl.car.lapTimer)
             ]
 
         Menu mdl ->

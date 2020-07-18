@@ -1,6 +1,8 @@
 module LapTimer exposing (..)
 
 import Circle2d exposing (Circle2d)
+import Html exposing (Html, text)
+import Html.Attributes exposing (class)
 import Length exposing (Length)
 import List.Extra exposing (interweave)
 import Point2d exposing (Point2d)
@@ -19,6 +21,8 @@ type alias LapTimerData =
     , upcoming : List TrackSequence
     , lapNumber : Int
     , offset : Float
+    , fastestLap : ( Int, Float )
+    , lastLapTime : Float
     }
 
 
@@ -71,9 +75,13 @@ update (LapTimer data) ( x, y ) deltaTime =
     else
         LapTimer { data | offset = data.offset + deltaTime }
 
+
+
 -- BUG HERE
 -- The lap should change one step further on. Now it changes when the next -point to the first rectangle
 -- it should change only when the first rectangle is reached.
+
+
 moveToNext : LapTimerData -> Float -> LapTimerData
 moveToNext data deltaTime =
     case data.upcoming of
@@ -83,22 +91,51 @@ moveToNext data deltaTime =
                 [] ->
                     data
 
-                -- Lap full
+                -- Revolve lists
                 first :: rest ->
                     { past = []
                     , next = first
                     , upcoming = rest ++ [ data.next ]
-                    , lapNumber = data.lapNumber + 1
-                    , offset = 0
+                    , lapNumber = data.lapNumber
+                    , offset = data.offset + deltaTime
+                    , fastestLap = data.fastestLap
+                    , lastLapTime = data.lastLapTime
                     }
 
         toNext :: rest ->
-            { past = data.past ++ [ data.next ]
-            , next = toNext
-            , upcoming = rest
-            , lapNumber = data.lapNumber
-            , offset = data.offset + deltaTime
-            }
+            if List.length data.past == 0 then
+                -- Next lap
+                let
+                    currentLapTime =
+                        data.offset + deltaTime
+
+                    (fLap, fTime) = data.fastestLap
+
+                    fastestLap =
+                        if fLap == 0 || currentLapTime < fTime then
+                            ( data.lapNumber, currentLapTime )
+
+                        else
+                            data.fastestLap
+                in
+                { past = data.past ++ [ data.next ]
+                , next = toNext
+                , upcoming = rest
+                , lapNumber = data.lapNumber + 1
+                , offset = 0
+                , fastestLap = fastestLap
+                , lastLapTime = currentLapTime
+                }
+
+            else
+                { past = data.past ++ [ data.next ]
+                , next = toNext
+                , upcoming = rest
+                , lapNumber = data.lapNumber
+                , offset = data.offset + deltaTime
+                , fastestLap = data.fastestLap
+                , lastLapTime = data.lastLapTime
+                }
 
 
 addOffset : LapTimer -> Float -> LapTimer
@@ -114,8 +151,10 @@ timer {- circles -} rectangles =
                 { past = []
                 , next = Rectangle firstRectangles
                 , upcoming = List.map Rectangle restRectangles
-                , lapNumber = 1
+                , lapNumber = 0
                 , offset = 0
+                , fastestLap = ( 0, 0 )
+                , lastLapTime = 0
                 }
 
         [] ->
@@ -125,9 +164,32 @@ timer {- circles -} rectangles =
                 , upcoming = []
                 , lapNumber = 0
                 , offset = 0
+                , fastestLap = ( 0, 0 )
+                , lastLapTime = 0
                 }
 
 
-text : LapTimer -> String
-text (LapTimer data) =
-    "Lap " ++ String.fromInt data.lapNumber ++ ": " ++ String.fromFloat (data.offset / 1000)
+render : LapTimer -> List (Html msg)
+render (LapTimer data) =
+    [ Html.span [ class "lap" ] [ Html.text ("Lap " ++ String.fromInt data.lapNumber ++ ": " ++ String.fromFloat (data.offset / 1000)) ]
+    , Html.span [ class "lap" ] <|
+        [ Html.text <|
+            "Fastest: "
+                ++ (String.fromInt <| fastestLapNum (LapTimer data))
+                ++ " / "
+                ++ (String.fromFloat <| fastestLapTime (LapTimer data) / 1000)
+        ]
+    , Html.span [ class "lap" ] <|
+        [Html.text <|
+            "Last: " ++ (String.fromFloat <| data.lastLapTime / 1000)]
+    ]
+
+
+fastestLapNum : LapTimer -> Int
+fastestLapNum (LapTimer data) =
+    Tuple.first data.fastestLap
+
+
+fastestLapTime : LapTimer -> Float
+fastestLapTime (LapTimer data) =
+    Tuple.second data.fastestLap
