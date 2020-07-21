@@ -4,7 +4,7 @@ import registerServiceWorker from "./registerServiceWorker";
 import { Engine, World, Bodies, Body, Vector } from "matter-js";
 
 const app = Elm.Main.init({
-  node: document.getElementById("root")
+  node: document.getElementById("root"),
 });
 app.ports.elmToJs.subscribe(({ dataType, payload }) => {
   //console.log("elmToJs MESSAGE", dataType, payload);
@@ -29,10 +29,10 @@ registerServiceWorker();
 /*******************************/
 /* Functions
 /*******************************/
-const addBodies = bodySpecs => {
+const addBodies = (bodySpecs) => {
   World.clear(world);
   bodies.length = 0;
-  bodySpecs.forEach(bodySpec => {
+  bodySpecs.forEach((bodySpec) => {
     console.log("Adding body: ", bodySpec);
     const {
       x,
@@ -43,7 +43,7 @@ const addBodies = bodySpecs => {
       id,
       rotation,
       velocity,
-      type_
+      type_,
     } = bodySpec;
     //console.log('Adding body', {x, y, width, height, mass, id, rotation, velocity})
     const body = createBody(x, y, width, height, type_);
@@ -78,8 +78,8 @@ const createBody = (x, y, width, height, type) => {
   }
 };
 
-const toBodySpecs = bodies => {
-  return bodies.map(body => {
+const toBodySpecs = (bodies) => {
+  return bodies.map((body) => {
     //console.log('Body toBodySpec', body)
     const bodySpec = {
       x: Math.round(body.position.x),
@@ -90,7 +90,7 @@ const toBodySpecs = bodies => {
       mass: body.mass,
       id: body.label,
       velocity: body.velocity,
-      type_: body.type_
+      type_: body.type_,
     };
     //console.log('bodySpec', bodySpec)
     return bodySpec;
@@ -100,63 +100,38 @@ const toBodySpecs = bodies => {
 const returnValue = (dataType, payload) => ({ dataType, payload });
 
 const updatePhysics = ({ delta, forces = [] }) => {
-  /*
-  Object.keys(forces).forEach(id => {
-    forces[id].forEach(objectForce => {
-      Body.applyForce(bodies[id], {x: body.x, y: body.y}, objectForce.vector);
-    })
-  })
-  */
-  const body = bodies[0];
-  if (forces.length > 0 && bodies.length > 0) {
-    let force = forces[0];
+  // forces: {id: string, force: {x:float, y:float }}
+  forces.forEach((force) => {
+    const car = bodies.filter((b) => b.label === force.id)[0];
 
-    let force2 = forces[1];
-    // force2 = Vector.normalise(force2);
-    // force2 = Vector.mult(force2, 0.08);
+    if (car) {
+      if (force.force) {
+        Body.applyForce(
+          car,
+          { x: car.position.x, y: car.position.y },
+          force.force
+        );
+      }
 
-    //console.log('BodiesForces', bodies, body.position.x, body.position.y);
-    // console.log('Forces 0',force, body.position);
-    // console.log('Forces 1',force2, body.position);
-
-    forces.forEach(f => {
-      Body.applyForce(body, { x: body.position.x, y: body.position.y }, f);
-    })
-
-    if (Vector.magnitude(force) > 0) {
-      const angle = Vector.angle(force, { x: 0, y: 0 }) + Math.PI / 2;
-      Body.setAngle(body, angle);
+      if (Vector.magnitude(force.force) > 0) {
+        const angle = Vector.angle(force.force, { x: 0, y: 0 }) + Math.PI / 2;
+        Body.setAngle(car, angle);
+      }
+    } else {
+      alert(`Could not find car ${force.id}`);
     }
-  }
+  });
 
   if (world.bodies.length < 1) {
     return [];
   }
-  //const velocity = world.bodies[0].velocity;
-  //Body.setVelocity(world.bodies[0], {x: velocity.x *0.9, y: velocity.y*0.9})
-
-  //console.log('VELOCITY:', world.bodies[0].velocity)
-  //console.log('ANGLE:', world.bodies[0].angle)
-  //console.log('POS:', world.bodies[0].position)
   Engine.update(engine, delta);
-  //console.log('VELOCITY:', world.bodies[0].velocity)
-  //console.log('ANGLE:', world.bodies[0].angle)
-  //console.log('POS:', world.bodies[0].position)
 
-  if (body) {
-    //console.log('Rotten force 3', body.angle)
-  }
-
-  //console.log('update physics', forces);
-  try {
-    //console.err('world BODY', world.bodies[0]);
-  } catch (e) {}
   const res = toBodySpecs(bodies);
-  //console.log('PosseRes:', res);
   return res;
 };
 
 const handlers = {
   PhysicsUpdate: updatePhysics,
-  AddBodies: addBodies
+  AddBodies: addBodies,
 };

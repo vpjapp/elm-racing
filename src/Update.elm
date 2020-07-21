@@ -16,12 +16,8 @@ import Quantity
 import Task as Task exposing (perform)
 import Time as Time exposing (now)
 import Track exposing (fromString, getHeight, getWidth, startPoint)
-import TrackUtils exposing (pointToTuple)
+import TrackUtils exposing (f, pointToTuple)
 import Vector2d
-
-
-f =
-    toFloat
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -47,39 +43,51 @@ update msg model =
 
         ( UpdatePhysics updatedBodies, Race mdl ) ->
             let
-                newCarBody =
-                    List.head updatedBodies
+                newCarBodies =
+                    List.filter (\body -> body.type_ == "car") updatedBodies
 
-                oldCar =
-                    mdl.car
+                otherBodies =
+                    List.filter (\body -> body.type_ /= "car") updatedBodies
+
+                oldCars =
+                    mdl.cars
+
+                updatedCars =
+                    List.filterMap
+                        (\newCarBody ->
+                            let
+                                oldCar =
+                                    List.filter (\oc -> oc.body.id == newCarBody.id) oldCars |> List.head
+                            in
+                            case oldCar of
+                                Just oc ->
+                                    let
+                                        ( targetX, targetY ) =
+                                            ( newCarBody.x, newCarBody.y )
+
+                                        updatedCar =
+                                            { oc
+                                                | body = newCarBody
+                                                , onTrack = Track.onTrack mdl.track ( targetX, targetY )
+                                            }
+                                    in
+                                    Just updatedCar
+
+                                Nothing ->
+                                    Nothing
+                        )
+                        newCarBodies
+
+                carBodies =
+                    List.map .body updatedCars
             in
-            case newCarBody of
-                Just theCarBody ->
-                    let
-                        ( targetX, targetY ) =
-                            ( theCarBody.x, theCarBody.y )
-
-                        updatedCar =
-                            { oldCar
-                                | body = theCarBody
-                                , onTrack = Track.onTrack mdl.track ( targetX, targetY )
-                            }
-                    in
-                    ( Race
-                        { mdl
-                            | bodies = updatedBodies
-                            , car = updatedCar
-                        }
-                    , Cmd.none
-                    )
-
-                Nothing ->
-                    ( Race
-                        { mdl
-                            | bodies = updatedBodies
-                        }
-                    , Cmd.none
-                    )
+            ( Race
+                { mdl
+                    | bodies = carBodies ++ otherBodies
+                    , cars = updatedCars
+                }
+            , Cmd.none
+            )
 
         ( AddBodies trackStr, Menu mdl ) ->
             let
@@ -145,7 +153,7 @@ update msg model =
 
                 car =
                     -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
-                    createCar trackStart gridSize Self lapTimer
+                    createCar "car-1" trackStart gridSize Self lapTimer
             in
             ( Race
                 { camera = camera
@@ -157,7 +165,7 @@ update msg model =
                 , debug = []
                 , forces = []
                 , bodies = []
-                , car = car
+                , cars = [ car ]
                 }
             , Cmd.batch [ outgoingAddBodies [ car.body ], Task.perform StartTimer Time.now ]
             )
@@ -165,7 +173,7 @@ update msg model =
         ( StepTime, mdl ) ->
             ( mdl, outgoingStepTime 1.1 [] )
 
-        ( SetTargetPoint point, Race mdl ) ->
+        ( SetTargetPoint carId point, Race mdl ) ->
             let
                 targetPoint =
                     -- if mdl.toggler then
@@ -186,35 +194,39 @@ update msg model =
                 --     addDebug model.debug
                 --         (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
             in
-            ( Race ({ mdl | toggler = not mdl.toggler } |> setTargetPoint targetPoint), Cmd.none )
+            ( Race
+                ({ mdl | toggler = not mdl.toggler }
+                    |> setTargetPoint targetPoint carId
+                )
+            , Cmd.none
+            )
 
         ( StepAnimation delta, Race mdl ) ->
             let
-                accelerateToTarget =
-                    getTargetAcceleration mdl
+                gappedDelta =
+                    min delta 100
 
-                slideControlForce =
-                    slideControl mdl
-
-                offTrackDragForce =
-                    offTrackDrag mdl.car
-
+                forces : List ( String, Vector )
                 forces =
-                    accelerateToTarget
-                        ++ slideControlForce
-                        ++ offTrackDragForce
+                    getCarForces mdl.cars
 
+                -- forces =
+                --     accelerateToTarget
+                --         ++ slideControlForce
+                --         ++ offTrackDragForce
                 toggler =
                     True
 
-                car =
-                    mdl.car
-
-                lapTimer =
-                    LapTimer.update mdl.car.lapTimer ( mdl.car.body.x, mdl.car.body.y ) delta
-
-                car_ =
-                    { car | lapTimer = lapTimer }
+                cars =
+                    List.map
+                        (\car ->
+                            let
+                                lapTimer =
+                                    LapTimer.update car.lapTimer ( car.body.x, car.body.y ) gappedDelta
+                            in
+                            { car | lapTimer = lapTimer }
+                        )
+                        mdl.cars
 
                 --not model.toggler
             in
@@ -223,9 +235,9 @@ update msg model =
                     { mdl
                         | forces = forces
                         , toggler = toggler
-                        , car = car_
+                        , cars = cars
                     }
-                , outgoingStepTime delta forces
+                , outgoingStepTime gappedDelta forces
                 )
 
             else
@@ -245,7 +257,38 @@ update msg model =
             ( mdl, Cmd.none )
 
 
-offTrackDrag : Car -> List Vector
+getCarForces : List Car -> List ( String, Vector )
+getCarForces cars =
+    List.map
+        (\car ->
+            let
+                accelerateToTarget =
+                    getTargetAcceleration car
+
+                slideControlForce =
+                    slideControl car
+
+                offTrackDragForce =
+                    offTrackDrag car
+            in
+            ( car.body.id, addVectors [ accelerateToTarget, slideControlForce, offTrackDragForce ] )
+        )
+        cars
+
+
+addVectors : List Vector -> Vector
+addVectors vectors =
+    List.foldl
+        (\cur res ->
+            { x = cur.x + res.x
+            , y = cur.y + res.y
+            }
+        )
+        { x = 0, y = 0 }
+        vectors
+
+
+offTrackDrag : Car -> Vector
 offTrackDrag car =
     if not car.onTrack then
         let
@@ -273,10 +316,10 @@ offTrackDrag car =
             vector =
                 Vector2d.withLength (Length.meters dragForce) direction
         in
-        [ { x = Vector2d.xComponent vector |> Length.inMeters, y = Vector2d.yComponent vector |> Length.inMeters } ]
+        { x = Vector2d.xComponent vector |> Length.inMeters, y = Vector2d.yComponent vector |> Length.inMeters }
 
     else
-        []
+        Vector 0 0
 
 
 maybeNextState mdl =
@@ -310,10 +353,13 @@ addDebug oldList debug =
     debug :: List.take 10 oldList
 
 
-getTargetAcceleration : RaceDetails -> List Vector
-getTargetAcceleration model =
-    calculateForceFromCarAndTarget model <|
-        \car ( x, y ) ->
+getTargetAcceleration : Car -> Vector
+getTargetAcceleration car =
+    case car.targetPoint of
+        Nothing ->
+            { x = 0, y = 0 }
+
+        Just ( x, y ) ->
             let
                 targetPoint =
                     Point2d.meters x y
@@ -331,70 +377,67 @@ getTargetAcceleration model =
                         |> Vector2d.normalize
                         |> Vector2d.scaleBy 0.3
             in
-            [ Vector2d.toUnitless vector ]
+            Vector2d.toUnitless vector
 
 
-slideControl : RaceDetails -> List Vector
-slideControl model =
-    calculateForceFromCar model <|
-        \car ->
-            let
-                faceDirection =
-                    Direction2d.fromAngle (Angle.radians car.rotation)
-
-                sideDirection =
-                    {- Direction2d.rotateClockwise -}
-                    faceDirection
-
-                velocity =
-                    Vector2d.fromRecord Quantity.float car.velocity
-
-                sideVelocityValue =
-                    Vector2d.componentIn sideDirection velocity
-
-                slideFactor =
-                    -0.0004
-
-                forceVector =
-                    Vector2d.withLength (Quantity.multiplyBy slideFactor sideVelocityValue) sideDirection
-            in
-            [ Vector2d.toUnitless forceVector ]
-
-
-calculateForceFromCarAndTarget : RaceDetails -> (Car -> ( Float, Float ) -> List Vector) -> List Vector
-calculateForceFromCarAndTarget model func =
-    case model.car.targetPoint of
-        Nothing ->
-            [ { x = 0, y = 0 } ]
-
-        Just ( x, y ) ->
-            func model.car ( x, y )
-
-
-calculateForceFromCar : RaceDetails -> (BodySpec -> List Vector) -> List Vector
-calculateForceFromCar model func =
-    func model.car.body
-
-
-setTargetPoint : Maybe ( Float, Float ) -> RaceDetails -> RaceDetails
-setTargetPoint point model =
+slideControl : Car -> Vector
+slideControl car =
     let
-        car =
-            model.car
+        faceDirection =
+            Direction2d.fromAngle (Angle.radians car.body.rotation)
+
+        sideDirection =
+            {- Direction2d.rotateClockwise -}
+            faceDirection
+
+        velocity =
+            Vector2d.fromRecord Quantity.float car.body.velocity
+
+        sideVelocityValue =
+            Vector2d.componentIn sideDirection velocity
+
+        slideFactor =
+            -0.0004
+
+        forceVector =
+            Vector2d.withLength (Quantity.multiplyBy slideFactor sideVelocityValue) sideDirection
     in
-    { model | car = { car | targetPoint = point } }
+    Vector2d.toUnitless forceVector
 
 
-outgoingStepTime : Float -> List Vector -> Cmd Msg
+
+-- calculateForceFromCar : RaceDetails -> (BodySpec -> List Vector) -> List Vector
+-- calculateForceFromCar model func =
+--     func model.car.body
+
+
+setTargetPoint : Maybe ( Float, Float ) -> String -> RaceDetails -> RaceDetails
+setTargetPoint point carId model =
+    let
+        cars =
+            List.map
+                (\c ->
+                    if c.body.id == carId then
+                        { c | targetPoint = point }
+
+                    else
+                        c
+                )
+                model.cars
+    in
+    { model | cars = cars }
+
+
+outgoingStepTime : Float -> List ( String, Vector ) -> Cmd Msg
 outgoingStepTime delta list =
     elmToJs <| OutgoingData "PhysicsUpdate" (Just <| encodeStepTime delta list)
 
 
-encodeStepTime : Float -> List Vector -> Value
+encodeStepTime : Float -> List ( String, Vector ) -> Value
 encodeStepTime delta forces =
     object <|
         [ ( "delta", float delta )
-        , ( "forces", list encodeVector2 forces )
+        , ( "forces", list encodeIdVector2 forces )
         ]
 
 
@@ -403,8 +446,8 @@ outgoingAddBodies bodies =
     elmToJs <| OutgoingData "AddBodies" (Just (bodies |> encodeBodies))
 
 
-createCar : ( Int, Int ) -> Int -> CarControlPoint -> LapTimer -> Car
-createCar startIndex gridWidth carControl lapTimer =
+createCar : String -> ( Int, Int ) -> Int -> CarControlPoint -> LapTimer -> Car
+createCar id startIndex gridWidth carControl lapTimer =
     { body =
         BodySpec (Tuple.second startIndex * gridWidth |> f)
             (Tuple.first startIndex * gridWidth |> f)
@@ -412,7 +455,8 @@ createCar startIndex gridWidth carControl lapTimer =
             400
             1.15
             100
-            "car-1"
+            id
+            --"car-1"
             { x = 0, y = 0 }
             "car"
     , targetPoint = Nothing
@@ -471,4 +515,12 @@ encodeVector2 vec =
     object <|
         [ ( "x", float vec.x )
         , ( "y", float vec.y )
+        ]
+
+
+encodeIdVector2 : ( String, Vector ) -> Value
+encodeIdVector2 idVec =
+    object <|
+        [ ( "id", string (Tuple.first idVec) )
+        , ( "force", encodeVector2 (Tuple.second idVec) )
         ]

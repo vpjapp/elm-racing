@@ -17,12 +17,12 @@ type alias RaceDetails =
     , objects : List Renderable
     , bodies : List BodySpec
     , resources : Resources
-    , forces : List Vector
+    , forces : List (String, Vector)
     , debug : List String
     , toggler : Bool
     , dimensions : ( Int, Int )
     , track : Track
-    , car : Car
+    , cars : List Car
     }
 
 
@@ -75,7 +75,7 @@ type Msg
     | UpdatePhysics (List BodySpec)
     | AddBodies String
     | StepTime
-    | SetTargetPoint (Maybe ( Float, Float ))
+    | SetTargetPoint String (Maybe ( Float, Float ))
     | StepAnimation Float
     | SetScreenSize Viewport
     | StartTimer Posix

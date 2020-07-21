@@ -12,11 +12,13 @@ import Game.TwoD exposing (..)
 import Game.TwoD.Camera exposing (fixedArea)
 import Game.TwoD.Render exposing (..)
 import Html exposing (Html, button, div, h1, text)
+import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Pointer as Pointer
 import Html.Events.Extra.Touch as Touch
 import Json.Decode exposing (Decoder)
 import Json.Decode.Pipeline exposing (required)
+import LapTimer exposing (LapTimer)
 import Length exposing (Length)
 import Model exposing (..)
 import Platform.Sub exposing (batch)
@@ -29,8 +31,7 @@ import Track exposing (..)
 import TrackUtils exposing (pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
 import Vector2d
-import Html.Attributes exposing (class)
-import LapTimer exposing (LapTimer)
+
 
 
 -- TODO state transfer from loading -> menu and menu button clicking and setting up the race after click.
@@ -109,31 +110,38 @@ bodyView model =
         Race mdl ->
             [ renderCenteredWithOptions
                 []
-                [ Pointer.onDown (relativePos >> Just >> SetTargetPoint)
-                , Touch.onMove (touchCoordinates >> Just >> SetTargetPoint)
-                , Pointer.onMove (relativePos >> Just >> SetTargetPoint)
-                , Pointer.onUp (\_ -> SetTargetPoint Nothing)
-                , Pointer.onOut (\_ -> SetTargetPoint Nothing)
-                , Pointer.onLeave (\_ -> SetTargetPoint Nothing)
+                [ Pointer.onDown (relativePos >> Just >> SetTargetPoint "car-1")
+                , Touch.onMove (touchCoordinates >> Just >> SetTargetPoint "car-1")
+                , Pointer.onMove (relativePos >> Just >> SetTargetPoint "car-1")
+                , Pointer.onUp (\_ -> SetTargetPoint "car-1" Nothing)
+                , Pointer.onOut (\_ -> SetTargetPoint "car-1" Nothing)
+                , Pointer.onLeave (\_ -> SetTargetPoint "car-1" Nothing)
                 ]
                 { time = 0
                 , size = mdl.dimensions
                 , camera = mdl.camera
                 }
                 (toRenderables mdl.track
-                    ++ debugLapTimer mdl.car.lapTimer
-                    ++ debugForces (getCar mdl) mdl.forces
+                    ++ debugLapTimer mdl.cars
+                    ++ debugForces mdl.cars mdl.forces
                     -- ++ debugSpots mdl.dimensions
-                    ++ debugTargetPoint mdl.car.targetPoint
+                    ++ debugTargetPoint mdl.cars
                     -- ++ debugTrack mdl.track 2000
-                    ++ debugOnTrack mdl.car
+                    ++ debugOnTrack mdl.cars
                     ++ bodySpecsToRenderables mdl.resources mdl.bodies
-                    ++ renderControlPoint mdl.car
+                    ++ renderControlPoint mdl.cars
                 )
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
             -- , div [] (renderDebug model)
-                , div [ class "lap-timer" ] (LapTimer.render mdl.car.lapTimer)
+            , div [ class "lap-timer" ]
+                (
+                    case mdl.cars |> List.head of
+                        Just car ->
+                            LapTimer.render car.lapTimer
+                        Nothing ->
+                            []
+                )
             ]
 
         Menu mdl ->
@@ -152,41 +160,49 @@ getTileSize pixels tileSize =
     pixels // tileSize
 
 
-renderControlPoint : Car -> List Renderable
-renderControlPoint car =
-    case car.carControl of
-        Self ->
-            []
+renderControlPoint : List Car -> List Renderable
+renderControlPoint cars =
+    List.filterMap
+        (\car ->
+            case car.carControl of
+                Self ->
+                    Nothing
 
-        Point control ->
-            let
-                ( x, y ) =
-                    pointToTuple control.point
+                Point control ->
+                    let
+                        ( x, y ) =
+                            pointToTuple control.point
 
-                radius =
-                    Circle2d.radius control.circle |> Length.inMeters
-            in
-            [ shapeWithOptions circle
-                { color = Color.green
-                , position = ( x, y, 0 )
-                , size = ( radius, radius )
-                , rotation = 0
-                , pivot = ( 0.5, 0.5 )
-                }
-            ]
-
-
-debugOnTrack car =
-    [ debugSpot
-        (if car.onTrack then
-            Color.green
-
-         else
-            Color.red
+                        radius =
+                            Circle2d.radius control.circle |> Length.inMeters
+                    in
+                    Just <|
+                        shapeWithOptions circle
+                            { color = Color.green
+                            , position = ( x, y, 0 )
+                            , size = ( radius, radius )
+                            , rotation = 0
+                            , pivot = ( 0.5, 0.5 )
+                            }
         )
-        ( car.body.x, car.body.y )
-        400
-    ]
+        cars
+
+
+debugOnTrack : List Car -> List Renderable
+debugOnTrack cars =
+    List.map
+        (\car ->
+            debugSpot
+                (if car.onTrack then
+                    Color.green
+
+                 else
+                    Color.red
+                )
+                ( car.body.x, car.body.y )
+                400
+        )
+        cars
 
 
 renderDebug : RaceDetails -> List (Html Msg)
@@ -209,15 +225,18 @@ getCar model =
             Nothing
 
 
-debugTargetPoint : Maybe ( Float, Float ) -> List Renderable
-debugTargetPoint mTarget =
-    case mTarget of
-        Nothing ->
-            []
+debugTargetPoint : List Car -> List Renderable
+debugTargetPoint cars =
+    List.filterMap
+        (\car ->
+            case car.targetPoint of
+                Nothing ->
+                    Nothing
 
-        Just ( x, y ) ->
-            [ debugSpot Color.darkRed ( x, y ) 100
-            ]
+                Just ( x, y ) ->
+                    Just <| debugSpot Color.darkRed ( x, y ) 100
+        )
+        cars
 
 
 debugSpots ( width, height ) =
@@ -243,15 +262,20 @@ debugSpot color ( x, y ) size =
         }
 
 
-debugForces : Maybe BodySpec -> List Vector -> List Renderable
-debugForces mBodySpec forces =
-    case mBodySpec of
-        Nothing ->
-            []
+debugForces : List Car -> List ( String, Vector ) -> List Renderable
+debugForces cars forces =
+    List.filterMap
+        (\car ->
+            let
+                carForce =
+                    List.filter (\( forceId, vector ) -> forceId == car.body.id) forces
+                        |> List.head
+            in
+            case carForce of
+                Nothing ->
+                    Nothing
 
-        Just car ->
-            List.map
-                (\{ x, y } ->
+                Just ( id, { x, y } ) ->
                     let
                         vector =
                             Vector2d.unitless x y
@@ -265,23 +289,61 @@ debugForces mBodySpec forces =
                         radians =
                             Angle.inRadians angle - (pi / 2)
                     in
-                    shapeWithOptions
-                        rectangle
-                        { color = Color.red
-                        , position = ( car.x, car.y, 0 )
-                        , size = ( 20, 400 )
-                        , pivot = ( 1, 0 )
-                        , rotation = radians
-                        }
-                )
-                forces
+                    Just <|
+                        shapeWithOptions
+                            rectangle
+                            { color = Color.red
+                            , position = ( car.body.x, car.body.y, 0 )
+                            , size = ( 20, 400 )
+                            , pivot = ( 1, 0 )
+                            , rotation = radians
+                            }
+        )
+        cars
 
-debugLapTimer: LapTimer -> List Renderable
-debugLapTimer lapTimer =
-    let
-        center = LapTimer.nextPoint lapTimer
-    in
-    [debugSpot Color.darkOrange center 200]
+
+
+-- case mBodySpec of
+--     Nothing ->
+--         []
+--     Just car ->
+--         List.map
+--             (\{ x, y } ->
+--                 let
+--                     vector =
+--                         Vector2d.unitless x y
+--                     dir =
+--                         Vector2d.direction vector |> Maybe.withDefault Direction2d.positiveY
+--                     angle =
+--                         Direction2d.toAngle dir
+--                     radians =
+--                         Angle.inRadians angle - (pi / 2)
+--                 in
+--                 shapeWithOptions
+--                     rectangle
+--                     { color = Color.red
+--                     , position = ( car.x, car.y, 0 )
+--                     , size = ( 20, 400 )
+--                     , pivot = ( 1, 0 )
+--                     , rotation = radians
+--                     }
+--             )
+--             forces
+
+
+debugLapTimer : List Car -> List Renderable
+debugLapTimer cars =
+    List.foldl
+        (\car res ->
+            let
+                center =
+                    LapTimer.nextPoint car.lapTimer
+            in
+            res ++ [ debugSpot Color.darkOrange center 200 ]
+        )
+        []
+        cars
+
 
 bodySpecsToRenderables : Resources -> List BodySpec -> List Renderable
 bodySpecsToRenderables resources bodies =
