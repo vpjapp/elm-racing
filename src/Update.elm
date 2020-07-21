@@ -154,6 +154,8 @@ update msg model =
                 car =
                     -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
                     createCar "car-1" trackStart gridSize Self lapTimer
+
+                car2 = createCar "car-2" trackStart gridSize Self lapTimer
             in
             ( Race
                 { camera = camera
@@ -165,9 +167,9 @@ update msg model =
                 , debug = []
                 , forces = []
                 , bodies = []
-                , cars = [ car ]
+                , cars = [ car, car2 ]
                 }
-            , Cmd.batch [ outgoingAddBodies [ car.body ], Task.perform StartTimer Time.now ]
+            , Cmd.batch [ outgoingAddBodies [ car.body, car2.body ], Task.perform StartTimer Time.now ]
             )
 
         ( StepTime, mdl ) ->
@@ -449,8 +451,8 @@ outgoingAddBodies bodies =
 createCar : String -> ( Int, Int ) -> Int -> CarControlPoint -> LapTimer -> Car
 createCar id startIndex gridWidth carControl lapTimer =
     { body =
-        BodySpec (Tuple.second startIndex * gridWidth |> f)
-            (Tuple.first startIndex * gridWidth |> f)
+        BodySpec (f (Tuple.second startIndex) * f gridWidth + 0.5 * f gridWidth)
+            (f (Tuple.first startIndex) * f gridWidth + 0.5 * f gridWidth)
             200
             400
             1.15
