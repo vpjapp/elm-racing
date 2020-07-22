@@ -113,7 +113,7 @@ const updatePhysics = ({ delta, forces = [] }) => {
         );
       }
 
-      if (Vector.magnitude(force.force) > 0) {
+      if (Vector.magnitude(force.force) > 0.1) {
         const angle = Vector.angle(force.force, { x: 0, y: 0 }) + Math.PI / 2;
         Body.setAngle(car, angle);
       }

@@ -156,6 +156,7 @@ update msg model =
                     createCar "car-1" trackStart gridSize Self lapTimer
 
                 car2 = createCar "car-2" trackStart gridSize Self lapTimer
+                car3 = createCar "car-3" trackStart gridSize Self lapTimer
             in
             ( Race
                 { camera = camera
@@ -167,9 +168,9 @@ update msg model =
                 , debug = []
                 , forces = []
                 , bodies = []
-                , cars = [ car, car2 ]
+                , cars = [ car, car2, car3 ]
                 }
-            , Cmd.batch [ outgoingAddBodies [ car.body, car2.body ], Task.perform StartTimer Time.now ]
+            , Cmd.batch [ outgoingAddBodies [ car.body, car2.body, car3.body ], Task.perform StartTimer Time.now ]
             )
 
         ( StepTime, mdl ) ->
@@ -419,11 +420,11 @@ setTargetPoint point carId model =
         cars =
             List.map
                 (\c ->
-                    if c.body.id == carId then
+                    --if c.body.id == carId then
                         { c | targetPoint = point }
 
-                    else
-                        c
+                    --else
+                    --    c
                 )
                 model.cars
     in

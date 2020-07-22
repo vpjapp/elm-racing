@@ -5,19 +5,20 @@ import Circle2d exposing (Circle2d)
 import Game.Resources as Resources exposing (Resources)
 import Game.TwoD.Camera exposing (Camera)
 import Game.TwoD.Render exposing (..)
+import LapTimer exposing (..)
 import Length exposing (Length, Meters)
 import Pixels exposing (Pixels)
 import Point2d exposing (Point2d)
 import Time exposing (Posix)
 import Track exposing (Track)
-import LapTimer exposing (..)
+
 
 type alias RaceDetails =
     { camera : Camera
     , objects : List Renderable
     , bodies : List BodySpec
     , resources : Resources
-    , forces : List (String, Vector)
+    , forces : List ( String, Vector )
     , debug : List String
     , toggler : Bool
     , dimensions : ( Int, Int )

@@ -268,14 +268,14 @@ debugForces cars forces =
         (\car ->
             let
                 carForce =
-                    List.filter (\( forceId, vector ) -> forceId == car.body.id) forces
+                    List.filter (\( forceId, _ ) -> forceId == car.body.id) forces
                         |> List.head
             in
             case carForce of
                 Nothing ->
                     Nothing
 
-                Just ( id, { x, y } ) ->
+                Just ( _, { x, y } ) ->
                     let
                         vector =
                             Vector2d.unitless x y
