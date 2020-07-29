@@ -12,6 +12,7 @@ import Point2d exposing (Point2d)
 import Time exposing (Posix)
 import Track exposing (Track)
 
+type alias Point = (Int, Int)
 
 type alias RaceDetails =
     { camera : Camera
@@ -74,7 +75,7 @@ type Msg
     | Resources Resources.Msg
     | ResFail String
     | UpdatePhysics (List BodySpec)
-    | AddBodies String
+    | AddBodies Int
     | StepTime
     | SetTargetPoint String (Maybe ( Float, Float ))
     | StepAnimation Float

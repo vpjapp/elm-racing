@@ -43,3 +43,11 @@ canvas {
   display: inline-block;
   width: 10rem;
 }
+
+.track-chooser-button {
+  width: 10px;
+  height: 10px;
+  background: lightgreen;
+  border: 1px solid white;
+  float: left;
+}

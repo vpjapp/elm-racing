@@ -15,7 +15,8 @@ import Ports exposing (..)
 import Quantity
 import Task as Task exposing (perform)
 import Time as Time exposing (now)
-import Track exposing (fromString, getHeight, getWidth, startPoint)
+import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
+import TrackGenerator exposing (generateTrack)
 import TrackUtils exposing (f, pointToTuple)
 import Vector2d
 
@@ -89,16 +90,14 @@ update msg model =
             , Cmd.none
             )
 
-        ( AddBodies trackStr, Menu mdl ) ->
+        ( AddBodies trackNro, Menu mdl ) ->
             let
                 ( w, h ) =
                     mdl.dimensions
 
-                trackString =
-                    String.replace " " "" trackStr
-
                 dummyTrack =
-                    fromString 0 0 (String.replace " " "" trackString)
+                    fromTuples 0 0 (generateTrack trackNro |> Maybe.withDefault [])
+
 
                 gridSize =
                     2500
@@ -126,8 +125,10 @@ update msg model =
                     else
                         fixedHeight (f ySize) ( f xSize / 2, f ySize / 2 )
 
+                -- track =
+                --     fromString gridSize trackSize trackString
                 track =
-                    fromString gridSize trackSize trackString
+                    fromTuples gridSize trackSize (generateTrack trackNro |> Maybe.withDefault [])
 
                 trackStart =
                     startPoint track
@@ -155,8 +156,8 @@ update msg model =
                     -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
                     createCar "car-1" trackStart gridSize Self lapTimer
 
-                car2 = createCar "car-2" trackStart gridSize Self lapTimer
-                car3 = createCar "car-3" trackStart gridSize Self lapTimer
+                -- car2 = createCar "car-2" trackStart gridSize Self lapTimer
+                -- car3 = createCar "car-3" trackStart gridSize Self lapTimer
             in
             ( Race
                 { camera = camera
@@ -168,9 +169,9 @@ update msg model =
                 , debug = []
                 , forces = []
                 , bodies = []
-                , cars = [ car, car2, car3 ]
+                , cars = [ car ]
                 }
-            , Cmd.batch [ outgoingAddBodies [ car.body, car2.body, car3.body ], Task.perform StartTimer Time.now ]
+            , Cmd.batch [ outgoingAddBodies [ car.body ], Task.perform StartTimer Time.now ]
             )
 
         ( StepTime, mdl ) ->
@@ -421,10 +422,9 @@ setTargetPoint point carId model =
             List.map
                 (\c ->
                     --if c.body.id == carId then
-                        { c | targetPoint = point }
-
-                    --else
-                    --    c
+                    { c | targetPoint = point }
+                 --else
+                 --    c
                 )
                 model.cars
     in

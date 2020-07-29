@@ -135,21 +135,25 @@ bodyView model =
             -- , button [ onClick StepTime ] [ text "StepTime" ]
             -- , div [] (renderDebug model)
             , div [ class "lap-timer" ]
-                (
-                    case mdl.cars |> List.head of
-                        Just car ->
-                            LapTimer.render car.lapTimer
-                        Nothing ->
-                            []
+                (case mdl.cars |> List.head of
+                    Just car ->
+                        LapTimer.render car.lapTimer
+
+                    Nothing ->
+                        []
                 )
             ]
 
         Menu mdl ->
-            List.map
-                (\trackStr ->
-                    div [] [ button [ onClick <| AddBodies trackStr ] [ text <| "Start drivin' " ++ trackStr ] ]
-                )
-                tracks
+            h1 [] [ text "Choose track" ]
+                :: List.map
+                    (\trackNro ->
+                        div [ class "track-chooser-button", onClick <| AddBodies trackNro ] []
+                    )
+                    (List.range
+                        0
+                        10000
+                    )
 
         Loading mdl ->
             [ h1 [] [ text "Loading... Please wait." ] ]
