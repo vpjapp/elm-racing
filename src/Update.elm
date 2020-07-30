@@ -2,13 +2,14 @@ module Update exposing (..)
 
 import Angle
 import Circle2d exposing (Circle2d)
+import Color exposing (Color)
 import Direction2d
 import Game.Resources as Resources
 import Game.TwoD.Camera as Camera exposing (Camera, fixedHeight, fixedWidth)
 import Game.TwoD.Render exposing (..)
 import Json.Encode exposing (..)
 import LapTimer exposing (..)
-import Length
+import Length exposing (inMeters)
 import Model exposing (..)
 import Point2d exposing (Point2d)
 import Ports exposing (..)
@@ -17,7 +18,7 @@ import Task as Task exposing (perform)
 import Time as Time exposing (now)
 import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
-import TrackUtils exposing (f, pointToTuple)
+import TrackUtils exposing (debugSpot, f, pointToTuple)
 import Vector2d
 
 
@@ -97,7 +98,6 @@ update msg model =
 
                 dummyTrack =
                     fromTuples 0 0 (generateTrack trackNro |> Maybe.withDefault [])
-
 
                 gridSize =
                     2500
@@ -214,6 +214,10 @@ update msg model =
                 forces =
                     getCarForces mdl.cars
 
+                skidMarks : List Renderable
+                skidMarks =
+                    getSkidMarks forces mdl.cars
+
                 -- forces =
                 --     accelerateToTarget
                 --         ++ slideControlForce
@@ -240,6 +244,7 @@ update msg model =
                         | forces = forces
                         , toggler = toggler
                         , cars = cars
+                        , objects = mdl.objects ++ skidMarks
                     }
                 , outgoingStepTime gappedDelta forces
                 )
@@ -259,6 +264,28 @@ update msg model =
 
         ( _, mdl ) ->
             ( mdl, Cmd.none )
+
+
+getSkidMarks : List ( String, Vector ) -> List Car -> List Renderable
+getSkidMarks forces cars =
+    List.filterMap
+        (\( id, force ) ->
+            List.filter (\c -> c.body.id == id) cars
+                |> List.head
+                |> Maybe.andThen
+                    (\car ->
+                        let
+                            velocity =
+                                getVelocity force
+                        in
+                        if velocity > 0.30001 then
+                            Just <| debugSpot Color.charcoal ( car.body.x, car.body.y ) 50
+
+                        else
+                            Nothing
+                    )
+        )
+        forces
 
 
 getCarForces : List Car -> List ( String, Vector )
@@ -324,6 +351,11 @@ offTrackDrag car =
 
     else
         Vector 0 0
+
+
+getVelocity : Vector -> Float
+getVelocity { x, y } =
+    Vector2d.from Point2d.origin (Point2d.xy (Length.meters x) (Length.meters y)) |> Vector2d.length |> inMeters
 
 
 maybeNextState mdl =

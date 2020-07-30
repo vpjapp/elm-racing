@@ -4,6 +4,9 @@ import Array exposing (fromList, get)
 import Point2d exposing (Point2d)
 import Length exposing (Length)
 import Quantity exposing (Quantity)
+import Color exposing (Color)
+import Game.TwoD.Render exposing (shapeWithOptions)
+import Game.TwoD.Render exposing (circle)
 
 tileCenter : Float -> Float -> Float
 tileCenter index size =
@@ -59,3 +62,20 @@ tupleToFloatTuple tuple  =
 tupleToPoint : (Float, Float) -> Point2d Length.Meters Length
 tupleToPoint (x, y) =
     Point2d.xy (Length.meters x) (Length.meters y)
+
+debugSpots ( width, height ) =
+    [ debugSpot Color.brown ( 0, 0 )
+    , debugSpot Color.orange ( f width, 0 )
+    , debugSpot Color.blue ( f width, f height )
+    , debugSpot Color.yellow ( 0, f height )
+    ]
+
+debugSpot color ( x, y ) size =
+    shapeWithOptions
+        circle
+        { color = color
+        , position = ( x, y, 0 )
+        , size = ( size, size )
+        , pivot = ( 0.5, 0.5 )
+        , rotation = 0.0
+        }

@@ -28,7 +28,7 @@ import Quantity exposing (Quantity)
 import Rectangle2d exposing (Rectangle2d)
 import Task
 import Track exposing (..)
-import TrackUtils exposing (pointToTuple, tupleToFloatTuple)
+import TrackUtils exposing (debugSpot, pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
 import Vector2d
 
@@ -122,6 +122,7 @@ bodyView model =
                 , camera = mdl.camera
                 }
                 (toRenderables mdl.track
+                    ++ mdl.objects
                     ++ debugLapTimer mdl.cars
                     ++ debugForces mdl.cars mdl.forces
                     -- ++ debugSpots mdl.dimensions
@@ -243,27 +244,8 @@ debugTargetPoint cars =
         cars
 
 
-debugSpots ( width, height ) =
-    [ debugSpot Color.brown ( 0, 0 )
-    , debugSpot Color.orange ( f width, 0 )
-    , debugSpot Color.blue ( f width, f height )
-    , debugSpot Color.yellow ( 0, f height )
-    ]
-
-
 f =
     toFloat
-
-
-debugSpot color ( x, y ) size =
-    shapeWithOptions
-        circle
-        { color = color
-        , position = ( x, y, 0 )
-        , size = ( size, size )
-        , pivot = ( 0.5, 0.5 )
-        , rotation = 0.0
-        }
 
 
 debugForces : List Car -> List ( String, Vector ) -> List Renderable
