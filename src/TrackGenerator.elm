@@ -54,10 +54,6 @@ generateTrack seedInt =
 
 getRecursiveTrack : Array2D TrackTile -> ( Int, Int ) -> ( Int, Int ) -> Int -> Random.Seed -> TrackResult
 getRecursiveTrack track startPoint currentPoint count seed =
-    let
-        _ =
-            Debug.log "currentPoint" currentPoint
-    in
     if currentPoint == startPoint && count > 0 then
         Track ( [], seed )
 
@@ -72,14 +68,13 @@ getRecursiveTrack track startPoint currentPoint count seed =
 
             nextPossibilities =
                 getNextPossiblePoints track currentPoint (count > 1) sPoint
-                    |> Debug.log "NextPossibilities"
 
             ( shuffledNext, seed2 ) =
                 Random.step (shuffle nextPossibilities) seed
         in
         List.foldl
             (\nextPoint trackRes ->
-                (case trackRes of
+                case trackRes of
                     Fail seed3 ->
                         let
                             ( col, row ) =
@@ -88,16 +83,12 @@ getRecursiveTrack track startPoint currentPoint count seed =
                             track_ =
                                 Array2D.set row col (TrackTile ( col, row )) track
 
-                            _ =
-                                Debug.log "Searching path from " <| pointToString startPoint ++ pointToString ( col, row )
-
                             returnPath =
                                 findPath
                                     straightLineCost
-                                    (\pos -> getNextPossiblePoints track pos False (Just startPoint) |> Debug.log "Possible astar pos's" |> Set.fromList)
+                                    (\pos -> getNextPossiblePoints track pos False (Just startPoint) |> Set.fromList)
                                     ( col, row )
                                     startPoint
-                                    |> Debug.log "Return path"
 
                             tres =
                                 case returnPath of
@@ -111,7 +102,6 @@ getRecursiveTrack track startPoint currentPoint count seed =
                                                         Fail seedF ->
                                                             Fail seedF
                                                )
-                                            |> (Debug.log <| "Recursive call " ++ (String.fromInt <| count + 1))
 
                                     Nothing ->
                                         Fail seed3
@@ -120,8 +110,6 @@ getRecursiveTrack track startPoint currentPoint count seed =
 
                     Track res ->
                         Track res
-                )
-                    |> Debug.log "Round fold"
             )
             (Fail seed2)
             shuffledNext
@@ -204,6 +192,7 @@ isHorizontalStraight : Array2D TrackTile -> Model.Point -> Bool
 isHorizontalStraight track point =
     (getPointLeft point |> tileIsEmpty track |> not)
         && (getPointRight point |> tileIsEmpty track |> not)
+
 
 isVerticalStraight : Array2D TrackTile -> Model.Point -> Bool
 isVerticalStraight track point =
