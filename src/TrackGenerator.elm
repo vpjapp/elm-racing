@@ -6,6 +6,7 @@ import Model exposing (CarControlPoint(..))
 import Random exposing (initialSeed)
 import Random.List exposing (..)
 import Set exposing (Set)
+import Model exposing (Point)
 
 
 maxWidth =
@@ -46,7 +47,7 @@ generateTrack seedInt =
     in
     case track of
         Track ( res, _ ) ->
-            Just res
+            Just <| normalizeTrack res
 
         Fail _ ->
             Nothing
@@ -250,3 +251,16 @@ randomPoint =
         (\x y -> ( x, y ))
         (Random.int 0 <| maxHeight - 1)
         (Random.int 0 <| maxWidth - 1)
+
+normalizeTrack : List Point -> List Point
+normalizeTrack trackList =
+    let
+        minX = List.foldl min 10000 (List.map Tuple.first trackList)
+        minY = List.foldl min 10000 (List.map Tuple.second trackList)
+
+        trackList_ =
+            List.map
+                (\(x, y) -> (x - minX, y - minY))
+                trackList
+    in
+        trackList_

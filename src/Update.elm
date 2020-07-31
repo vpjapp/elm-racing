@@ -214,14 +214,10 @@ update msg model =
                 forces =
                     getCarForces mdl.cars
 
-                skidMarks : List Renderable
-                skidMarks =
-                    getSkidMarks forces mdl.cars
+                -- skidMarks : List Renderable
+                -- skidMarks =
+                --     getSkidMarks forces mdl.cars
 
-                -- forces =
-                --     accelerateToTarget
-                --         ++ slideControlForce
-                --         ++ offTrackDragForce
                 toggler =
                     True
 
@@ -230,7 +226,7 @@ update msg model =
                         (\car ->
                             let
                                 lapTimer =
-                                    LapTimer.update car.lapTimer ( car.body.x, car.body.y ) gappedDelta
+                                    LapTimer.update car.lapTimer ( car.body.x, car.body.y ) 16
                             in
                             { car | lapTimer = lapTimer }
                         )
@@ -244,7 +240,7 @@ update msg model =
                         | forces = forces
                         , toggler = toggler
                         , cars = cars
-                        , objects = mdl.objects ++ skidMarks
+                        -- , objects = mdl.objects ++ skidMarks
                     }
                 , outgoingStepTime gappedDelta forces
                 )
