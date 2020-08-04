@@ -2,11 +2,10 @@ module TrackGenerator exposing (..)
 
 import AStar exposing (findPath, straightLineCost)
 import Array2D exposing (Array2D)
-import Model exposing (CarControlPoint(..))
+import Model exposing (CarControlPoint(..), Point)
 import Random exposing (initialSeed)
 import Random.List exposing (..)
 import Set exposing (Set)
-import Model exposing (Point)
 
 
 maxWidth =
@@ -25,6 +24,12 @@ type TrackTile
 type TrackResult
     = Track ( List ( Int, Int ), Random.Seed )
     | Fail Random.Seed
+
+
+type TileType
+    = Point
+    | Empty
+    | OffGrid
 
 
 generateTrack : Int -> Maybe (List ( Int, Int ))
@@ -140,10 +145,10 @@ getPossiblePoint track point1 point2 canJump possibleStartPoint =
                 Nothing ->
                     False
     in
-    if pointIsStartPoint1 || tileIsEmpty track point1 then
+    if pointIsStartPoint1 || (tileType track point1 == Empty) then
         Just point1
 
-    else if canJump && (pointIsStartPoint2 || tileIsEmpty track point2) then
+    else if canJump && (pointIsStartPoint2 || tileType track point2 == Empty) then
         Just point2
 
     else
@@ -191,14 +196,14 @@ getNextPossiblePoints track point canJump possibleStartPoint =
 
 isHorizontalStraight : Array2D TrackTile -> Model.Point -> Bool
 isHorizontalStraight track point =
-    (getPointLeft point |> tileIsEmpty track |> not)
-        && (getPointRight point |> tileIsEmpty track |> not)
+    ((getPointLeft point |> tileType track) == Point)
+        && ((getPointRight point |> tileType track) == Point)
 
 
 isVerticalStraight : Array2D TrackTile -> Model.Point -> Bool
 isVerticalStraight track point =
-    (getPointUp point |> tileIsEmpty track |> not)
-        && (getPointDown point |> tileIsEmpty track |> not)
+    ((getPointUp point |> tileType track) == Point)
+        && ((getPointDown point |> tileType track) == Point)
 
 
 getPointUp =
@@ -221,21 +226,21 @@ getPoint ( deltaX, deltaY ) ( x, y ) =
     ( x + deltaX, y + deltaY )
 
 
-tileIsEmpty : Array2D TrackTile -> ( Int, Int ) -> Bool
-tileIsEmpty array ( col, row ) =
+tileType : Array2D TrackTile -> ( Int, Int ) -> TileType
+tileType array ( col, row ) =
     let
         mTile =
             Array2D.get row col array
     in
     case mTile of
         Just (TrackTile point) ->
-            False
+            Point
 
         Just (EmptyTile point) ->
-            True
+            Empty
 
         Nothing ->
-            False
+            OffGrid
 
 
 
@@ -252,15 +257,19 @@ randomPoint =
         (Random.int 0 <| maxHeight - 1)
         (Random.int 0 <| maxWidth - 1)
 
+
 normalizeTrack : List Point -> List Point
 normalizeTrack trackList =
     let
-        minX = List.foldl min 10000 (List.map Tuple.first trackList)
-        minY = List.foldl min 10000 (List.map Tuple.second trackList)
+        minX =
+            List.foldl min 10000 (List.map Tuple.first trackList)
+
+        minY =
+            List.foldl min 10000 (List.map Tuple.second trackList)
 
         trackList_ =
             List.map
-                (\(x, y) -> (x - minX, y - minY))
+                (\( x, y ) -> ( x - minX, y - minY ))
                 trackList
     in
-        trackList_
+    trackList_
