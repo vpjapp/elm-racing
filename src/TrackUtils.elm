@@ -7,6 +7,7 @@ import Quantity exposing (Quantity)
 import Color exposing (Color)
 import Game.TwoD.Render exposing (shapeWithOptions)
 import Game.TwoD.Render exposing (circle)
+import Game.TwoD.Render exposing (rectangle)
 
 tileCenter : Float -> Float -> Float
 tileCenter index size =
@@ -79,3 +80,16 @@ debugSpot color ( x, y ) size =
         , pivot = ( 0.5, 0.5 )
         , rotation = 0.0
         }
+
+drawRect color ( x, y ) size rotation =
+    shapeWithOptions
+        rectangle
+        { color = color
+        , position = ( x, y, 0 )
+        , size = size
+        , pivot = ( 0.5, 0.5 )
+        , rotation = rotation
+        }
+
+intPointToFloatPoint : (Int, Int) -> (Float, Float)
+intPointToFloatPoint = Tuple.mapBoth f f

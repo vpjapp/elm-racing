@@ -2,7 +2,8 @@ module TrackRenderables exposing (..)
 
 import Color
 import Game.TwoD.Render exposing (Renderable, circle, rectangle, shapeWithOptions)
-import TrackUtils exposing (getCoordinatesForIndex, getPairs, tileCenterPoint)
+import TrackUtils exposing (debugSpot, getCoordinatesForIndex, getPairs, intPointToFloatPoint, tileCenterPoint, tupleToFloatTuple)
+import TrackUtils exposing (drawRect)
 
 
 getRenderables : Int -> Int -> List ( Int, Int ) -> List Renderable
@@ -14,6 +15,7 @@ getRenderables gridWidth trackWidth points =
         )
         points
         ++ getStraights gridWidth trackWidth points
+        ++ getStartLine (List.take 2 points) gridWidth trackWidth
 
 
 getCircle : Int -> Int -> ( Int, Int ) -> Renderable
@@ -97,3 +99,34 @@ f =
 
 pairAvg ( x1, y1 ) ( x2, y2 ) =
     ( (x1 + x2) / 2, (y1 + y2) / 2 )
+
+
+getStartLine : List ( Int, Int ) -> Int -> Int -> List Renderable
+getStartLine points gridSize trackSize =
+    case points of
+        ( x1, y1 ) :: ( x2, y2 ) :: _ ->
+            let
+                vertical = x1 - x2 == 0
+
+                size =
+                        intPointToFloatPoint (100, trackSize)
+                rotation =
+                    if vertical then
+                        0
+                    else
+                        pi/2
+
+
+                startPoint =
+                    ( f (y1 * gridSize) + 0.5 * f gridSize, f (x1 * gridSize) + 0.5 * f gridSize )
+                secondPoint =
+                    ( f (y2 * gridSize) + 0.5 * f gridSize, f (x2 * gridSize) + 0.5 * f gridSize )
+                -- _ = Debug.log "Start points" points
+                -- a1 = Debug.log "Start point" (intPointToFloatPoint startPoint)
+            in
+            [ drawRect Color.lightGray startPoint size rotation
+            -- , debugSpot Color.darkGreen secondPoint (f trackSize)
+            ]
+
+        _ ->
+            []

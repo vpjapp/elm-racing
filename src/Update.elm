@@ -217,7 +217,6 @@ update msg model =
                 -- skidMarks : List Renderable
                 -- skidMarks =
                 --     getSkidMarks forces mdl.cars
-
                 toggler =
                     True
 
@@ -240,6 +239,7 @@ update msg model =
                         | forces = forces
                         , toggler = toggler
                         , cars = cars
+
                         -- , objects = mdl.objects ++ skidMarks
                     }
                 , outgoingStepTime gappedDelta forces
@@ -480,7 +480,8 @@ outgoingAddBodies bodies =
 createCar : String -> ( Int, Int ) -> Int -> CarControlPoint -> LapTimer -> Car
 createCar id startIndex gridWidth carControl lapTimer =
     { body =
-        BodySpec (f (Tuple.second startIndex) * f gridWidth + 0.5 * f gridWidth)
+        BodySpec
+            (f (Tuple.second startIndex) * f gridWidth + 0.5 * f gridWidth)
             (f (Tuple.first startIndex) * f gridWidth + 0.5 * f gridWidth)
             200
             400

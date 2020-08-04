@@ -162,10 +162,6 @@ point : ( Float, Float ) -> Point2d Length.Meters Length
 point ( x, y ) =
     Point2d.fromMeters { x = x, y = y }
 
-
-f =
-    toFloat
-
 toCircles : Track -> List (Circle2d Length.Meters Length)
 toCircles (Track track) =
     track.circle2ds
