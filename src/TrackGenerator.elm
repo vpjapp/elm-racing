@@ -41,14 +41,18 @@ generateTrack seedInt =
         seed =
             initialSeed seedInt
 
-        ( ( row, col ), seed2 ) =
-            Random.step randomPoint seed
+        ( ( col, row ), seed2 ) =
+            Random.step getStartPoint seed
+
+        ( isVert, seed3 ) =
+            Random.step boolGen seed2
+        -- TODO allow start straight to be vertical also
 
         array_ =
             Array2D.set row col (TrackTile ( col, row )) array
 
         track =
-            getRecursiveTrack array_ ( row, col ) ( row, col ) 0 seed2
+            getRecursiveTrack array_ ( col, row ) ( col, row ) 0 seed3
     in
     case track of
         Track ( res, _ ) ->
@@ -72,20 +76,27 @@ getRecursiveTrack track startPoint currentPoint count seed =
                 else
                     Nothing
 
+            ( col, row ) =
+                currentPoint
+
             nextPossibilities =
-                getNextPossiblePoints track currentPoint (count > 1) sPoint
+                if count < 2 then
+                    [ ( col, row + 1 ) ]
+
+                else
+                    getNextPossiblePoints track currentPoint (count > 1) sPoint
 
             ( shuffledNext, seed2 ) =
                 Random.step (shuffle nextPossibilities) seed
         in
+        -- Iterate nextPossibilities in random order. Recurse to each possibility.
+        -- If valid track has been found, then return it and ignore other possibly remaining nextPossibilities
+        -- Start with default of Fail so if none of the nextPossibilities result in valid track, return Fail
         List.foldl
             (\nextPoint trackRes ->
                 case trackRes of
                     Fail seed3 ->
                         let
-                            ( col, row ) =
-                                currentPoint
-
                             track_ =
                                 Array2D.set row col (TrackTile ( col, row )) track
 
@@ -127,7 +138,6 @@ pointToString ( x, y ) =
 
 getPossiblePoint : Array2D TrackTile -> ( Int, Int ) -> ( Int, Int ) -> Bool -> Maybe ( Int, Int ) -> Maybe ( Int, Int )
 getPossiblePoint track point1 point2 canJump possibleStartPoint =
-    -- TODO check that the jump can only go over a straight
     let
         pointIsStartPoint1 =
             case possibleStartPoint of
@@ -250,12 +260,25 @@ tileType array ( col, row ) =
 --             Just (TrackTile point) -> point)
 
 
-randomPoint : Random.Generator ( Int, Int )
-randomPoint =
+getStartPoint : Random.Generator ( Int, Int )
+getStartPoint =
     Random.map2
         (\x y -> ( x, y ))
         (Random.int 0 <| maxHeight - 1)
-        (Random.int 0 <| maxWidth - 1)
+        (Random.int 0 <| maxWidth - 3)
+
+
+boolGen : Random.Generator Bool
+boolGen =
+    Random.int 0 1
+        |> Random.andThen
+            (\nro ->
+                if nro > 0 then
+                    Random.constant True
+
+                else
+                    Random.constant False
+            )
 
 
 normalizeTrack : List Point -> List Point
@@ -271,5 +294,13 @@ normalizeTrack trackList =
             List.map
                 (\( x, y ) -> ( x - minX, y - minY ))
                 trackList
+
+        trackList__ =
+            case List.head trackList_ of
+                Just tile ->
+                    List.drop 1 trackList_ ++ [ tile ]
+
+                Nothing ->
+                    trackList_
     in
-    trackList_
+    trackList__
