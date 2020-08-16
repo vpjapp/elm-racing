@@ -1,5 +1,6 @@
 module Update exposing (..)
 
+import AiCarLogic exposing (nextPointLogic)
 import Angle
 import Circle2d exposing (Circle2d)
 import Color exposing (Color)
@@ -18,7 +19,7 @@ import Task as Task exposing (perform)
 import Time as Time exposing (now)
 import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
-import TrackUtils exposing (debugSpot, f, pointToTuple)
+import TrackUtils exposing (debugSpot, f, pointToIntTuple, pointToTuple)
 import Vector2d
 
 
@@ -154,10 +155,20 @@ update msg model =
 
                 car =
                     -- createCar trackStart gridSize (Point { point = carControlPoint, circle = carControlCircle })
-                    createCar "car-1" trackStart gridSize Self lapTimer
+                    createCar "car-1" trackStart gridSize CursorToSelf lapTimer
+
+                aiCar1 =
+                    createCar "ai-car-1" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
+
+                aiCar2 =
+                    createCar "ai-car-2" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
+                aiCar3 =
+                    createCar "ai-car-3" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
 
                 -- car2 = createCar "car-2" trackStart gridSize Self lapTimer
                 -- car3 = createCar "car-3" trackStart gridSize Self lapTimer
+
+                cars = [ car, aiCar1, aiCar2, aiCar3 ]
             in
             ( Race
                 { camera = camera
@@ -169,9 +180,9 @@ update msg model =
                 , debug = []
                 , forces = []
                 , bodies = []
-                , cars = [ car ]
+                , cars = cars
                 }
-            , Cmd.batch [ outgoingAddBodies [ car.body ], Task.perform StartTimer Time.now ]
+            , Cmd.batch [ outgoingAddBodies (List.map .body cars), Task.perform StartTimer Time.now ]
             )
 
         ( StepTime, mdl ) ->
@@ -257,6 +268,9 @@ update msg model =
                     viewport.viewport.height
             in
             ( maybeNextState { mdl | dimensions = Just ( round w, round h ) }, Cmd.none )
+
+        ( UpdateTargetPoints, Race mdl ) ->
+            ( mdl |> updateTargetPoint, Cmd.none )
 
         ( _, mdl ) ->
             ( mdl, Cmd.none )
@@ -398,11 +412,14 @@ getTargetAcceleration car =
 
                 carPos =
                     case car.carControl of
-                        Self ->
+                        CursorToSelf ->
                             Point2d.meters car.body.x car.body.y
 
-                        Point details ->
+                        CursorToPoint details ->
                             details.point
+
+                        AiControl _ ->
+                            Point2d.meters car.body.x car.body.y
 
                 vector =
                     Vector2d.from carPos targetPoint
@@ -449,10 +466,11 @@ setTargetPoint point carId model =
         cars =
             List.map
                 (\c ->
-                    --if c.body.id == carId then
-                    { c | targetPoint = point }
-                 --else
-                 --    c
+                    if c.body.id == carId then
+                        { c | targetPoint = point }
+
+                    else
+                        c
                 )
                 model.cars
     in
@@ -477,7 +495,7 @@ outgoingAddBodies bodies =
     elmToJs <| OutgoingData "AddBodies" (Just (bodies |> encodeBodies))
 
 
-createCar : String -> ( Int, Int ) -> Int -> CarControlPoint -> LapTimer -> Car
+createCar : String -> ( Int, Int ) -> Int -> CarControl -> LapTimer -> Car
 createCar id startIndex gridWidth carControl lapTimer =
     { body =
         BodySpec
@@ -512,6 +530,28 @@ getInitialBodies =
 
 createCircle posX posY =
     BodySpec posX posY 100 100 0 1800 "circle-2" { x = 0, y = 0 } "circle"
+
+
+updateTargetPoint : RaceDetails -> Model
+updateTargetPoint mdl =
+    let
+        cars =
+            mdl.cars
+                |> List.map
+                    (\car ->
+                        case car.carControl of
+                            AiControl logic ->
+                                { car | targetPoint = logic car }
+
+                            _ ->
+                                car
+                    )
+    in
+    Race { mdl | cars = cars }
+
+
+
+-- Encoders
 
 
 encodeBodies : List BodySpec -> Value

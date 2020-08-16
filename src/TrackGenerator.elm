@@ -2,18 +2,18 @@ module TrackGenerator exposing (..)
 
 import AStar exposing (findPath, straightLineCost)
 import Array2D exposing (Array2D)
-import Model exposing (CarControlPoint(..), Point)
+import Model exposing (CarControl(..), Point)
 import Random exposing (initialSeed)
 import Random.List exposing (..)
 import Set exposing (Set)
 
 
 maxWidth =
-    7
+    5
 
 
 maxHeight =
-    7
+    5
 
 
 type TrackTile

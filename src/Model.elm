@@ -32,17 +32,18 @@ type alias Car =
     { body : BodySpec
     , targetPoint : Maybe ( Float, Float )
     , onTrack : Bool
-    , carControl : CarControlPoint
+    , carControl : CarControl
     , lapTimer : LapTimer
     }
 
 
-type CarControlPoint
-    = Self
-    | Point
+type CarControl
+    = CursorToSelf
+    | CursorToPoint
         { point : Point2d Meters Length
         , circle : Circle2d Meters Length
         }
+    | AiControl (Car -> Maybe (Float, Float))
 
 
 type Model
@@ -81,6 +82,7 @@ type Msg
     | StepAnimation Float
     | SetScreenSize Viewport
     | StartTimer Posix
+    | UpdateTargetPoints
 
 
 type TrackTile

@@ -27,6 +27,7 @@ import Ports exposing (..)
 import Quantity exposing (Quantity)
 import Rectangle2d exposing (Rectangle2d)
 import Task
+import Time
 import Track exposing (..)
 import TrackUtils exposing (debugSpot, pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
@@ -170,10 +171,13 @@ renderControlPoint cars =
     List.filterMap
         (\car ->
             case car.carControl of
-                Self ->
+                CursorToSelf ->
                     Nothing
 
-                Point control ->
+                AiControl _ ->
+                    Nothing
+
+                CursorToPoint control ->
                     let
                         ( x, y ) =
                             pointToTuple control.point
@@ -385,6 +389,7 @@ subscriptions model =
     batch
         [ Ports.jsToElm passData
         , onAnimationFrameDelta StepAnimation
+        , Time.every 500 (always UpdateTargetPoints)
         ]
 
 
