@@ -21,6 +21,7 @@ import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
 import TrackUtils exposing (debugSpot, f, pointToIntTuple, pointToTuple)
 import Vector2d
+import AiCarLogic exposing (nextTwoPointLogic)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -163,7 +164,7 @@ update msg model =
                 aiCar2 =
                     createCar "ai-car-2" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
                 aiCar3 =
-                    createCar "ai-car-3" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
+                    createCar "ai-car-3" trackStart gridSize (AiControl nextTwoPointLogic) (LapTimer.timer (Track.toRectangles track))
 
                 -- car2 = createCar "car-2" trackStart gridSize Self lapTimer
                 -- car3 = createCar "car-3" trackStart gridSize Self lapTimer

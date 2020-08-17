@@ -41,9 +41,23 @@ next (LapTimer data) =
     data.next
 
 
+allNext : LapTimer -> List ( Float, Float )
+allNext (LapTimer data) =
+    data.next
+        :: data.upcoming
+        ++ data.past
+        |> List.map
+            sequenceToPoint
+
+
 nextPoint : LapTimer -> ( Float, Float )
 nextPoint (LapTimer data) =
-    case data.next of
+    sequenceToPoint data.next
+
+
+sequenceToPoint : TrackSequence -> ( Float, Float )
+sequenceToPoint seq =
+    case seq of
         Rectangle rect ->
             Rectangle2d.centerPoint rect
                 |> TrackUtils.pointToTuple
@@ -109,7 +123,8 @@ moveToNext data deltaTime =
                     currentLapTime =
                         data.offset + deltaTime
 
-                    (fLap, fTime) = data.fastestLap
+                    ( fLap, fTime ) =
+                        data.fastestLap
 
                     fastestLap =
                         if fLap == 0 || currentLapTime < fTime then
@@ -180,8 +195,10 @@ render (LapTimer data) =
                 ++ (String.fromFloat <| fastestLapTime (LapTimer data) / 1000)
         ]
     , Html.span [ class "lap" ] <|
-        [Html.text <|
-            "Last: " ++ (String.fromFloat <| data.lastLapTime / 1000)]
+        [ Html.text <|
+            "Last: "
+                ++ (String.fromFloat <| data.lastLapTime / 1000)
+        ]
     ]
 
 
