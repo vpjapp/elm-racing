@@ -21,6 +21,7 @@ import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
 import TrackUtils exposing (debugSpot, f, pointToIntTuple, pointToTuple)
 import Vector2d
+import Process
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -92,8 +93,10 @@ update msg model =
             , Cmd.none
             )
 
-        -- ( StartGenerationgTrackAndCars trackNro, Menu mdl)
-        ( GenerateTrackAndCars trackNro, Menu mdl ) ->
+        ( StartGenerationgTrackAndCars trackNro, Menu mdl ) ->
+            ( LoadingTrack mdl, Process.sleep 100 |> Task.perform (\_ ->  GenerateTrackAndCars trackNro))
+
+        ( GenerateTrackAndCars trackNro, LoadingTrack mdl ) ->
             let
                 ( w, h ) =
                     mdl.dimensions

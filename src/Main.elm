@@ -150,7 +150,7 @@ bodyView model =
             h1 [] [ text "Choose track" ]
                 :: List.map
                     (\trackNro ->
-                        div [ class "track-chooser-button", onClick <| GenerateTrackAndCars trackNro ] []
+                        div [ class "track-chooser-button", onClick <| StartGenerationgTrackAndCars trackNro ] []
                     )
                     (List.range
                         0
@@ -160,6 +160,8 @@ bodyView model =
         Loading mdl ->
             [ h1 [] [ text "Loading... Please wait." ] ]
 
+        LoadingTrack mdl ->
+            [ h1 [] [ text "Generating track... Please wait." ] ]
 
 getTileSize : Int -> Int -> Int
 getTileSize pixels tileSize =

@@ -49,6 +49,7 @@ type CarControl
 type Model
     = Loading { resources : Resources, dimensions : Maybe ( Int, Int ) }
     | Menu { resources : Resources, dimensions : ( Int, Int ) }
+    | LoadingTrack { resources : Resources, dimensions : ( Int, Int ) }
     | Race RaceDetails
 
 
@@ -77,6 +78,7 @@ type Msg
     | ResFail String
     | UpdatePhysics (List BodySpec)
     | GenerateTrackAndCars Int
+    | StartGenerationgTrackAndCars Int
     | StepTime
     | SetTargetPoint String (Maybe ( Float, Float ))
     | StepAnimation Float
