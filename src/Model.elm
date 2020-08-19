@@ -76,7 +76,7 @@ type Msg
     | Resources Resources.Msg
     | ResFail String
     | UpdatePhysics (List BodySpec)
-    | AddBodies Int
+    | GenerateTrackAndCars Int
     | StepTime
     | SetTargetPoint String (Maybe ( Float, Float ))
     | StepAnimation Float

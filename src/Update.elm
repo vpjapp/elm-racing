@@ -1,6 +1,6 @@
 module Update exposing (..)
 
-import AiCarLogic exposing (nextPointLogic)
+import AiCarLogic exposing (nextPointLogic, nextTwoPointLogic, nextTwoPointLogicWithBraking)
 import Angle
 import Circle2d exposing (Circle2d)
 import Color exposing (Color)
@@ -21,7 +21,6 @@ import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
 import TrackUtils exposing (debugSpot, f, pointToIntTuple, pointToTuple)
 import Vector2d
-import AiCarLogic exposing (nextTwoPointLogic)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -93,7 +92,8 @@ update msg model =
             , Cmd.none
             )
 
-        ( AddBodies trackNro, Menu mdl ) ->
+        -- ( StartGenerationgTrackAndCars trackNro, Menu mdl)
+        ( GenerateTrackAndCars trackNro, Menu mdl ) ->
             let
                 ( w, h ) =
                     mdl.dimensions
@@ -162,14 +162,19 @@ update msg model =
                     createCar "ai-car-1" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
 
                 aiCar2 =
-                    createCar "ai-car-2" trackStart gridSize (AiControl nextPointLogic) (LapTimer.timer (Track.toRectangles track))
+                    createCar "ai-car-2" trackStart gridSize (AiControl nextTwoPointLogicWithBraking) (LapTimer.timer (Track.toRectangles track))
+
                 aiCar3 =
                     createCar "ai-car-3" trackStart gridSize (AiControl nextTwoPointLogic) (LapTimer.timer (Track.toRectangles track))
 
                 -- car2 = createCar "car-2" trackStart gridSize Self lapTimer
                 -- car3 = createCar "car-3" trackStart gridSize Self lapTimer
-
-                cars = [ car, aiCar1, aiCar2, aiCar3 ]
+                cars =
+                    [ car
+                    , aiCar1
+                    , aiCar2
+                    , aiCar3
+                    ]
             in
             ( Race
                 { camera = camera

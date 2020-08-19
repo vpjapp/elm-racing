@@ -150,7 +150,7 @@ bodyView model =
             h1 [] [ text "Choose track" ]
                 :: List.map
                     (\trackNro ->
-                        div [ class "track-chooser-button", onClick <| AddBodies trackNro ] []
+                        div [ class "track-chooser-button", onClick <| GenerateTrackAndCars trackNro ] []
                     )
                     (List.range
                         0
@@ -389,7 +389,7 @@ subscriptions model =
     batch
         [ Ports.jsToElm passData
         , onAnimationFrameDelta StepAnimation
-        , Time.every 500 (always UpdateTargetPoints)
+        , Time.every 100 (always UpdateTargetPoints)
         ]
 
 
