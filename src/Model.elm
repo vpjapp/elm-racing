@@ -7,7 +7,6 @@ import Game.TwoD.Camera exposing (Camera)
 import Game.TwoD.Render exposing (..)
 import LapTimer exposing (..)
 import Length exposing (Length, Meters)
-import Pixels exposing (Pixels)
 import Point2d exposing (Point2d)
 import Time exposing (Posix)
 import Track exposing (Track)
@@ -25,8 +24,13 @@ type alias RaceDetails =
     , dimensions : ( Int, Int )
     , track : Track
     , cars : List Car
+    , raceState: RaceState
     }
 
+type RaceState
+    = Starting Int
+    | Racing
+    | Finished
 
 type alias Car =
     { body : BodySpec
@@ -78,13 +82,14 @@ type Msg
     | ResFail String
     | UpdatePhysics (List BodySpec)
     | GenerateTrackAndCars Int
-    | StartGenerationgTrackAndCars Int
+    | StartGeneratingTrackAndCars Int
     | StepTime
     | SetTargetPoint String (Maybe ( Float, Float ))
     | StepAnimation Float
     | SetScreenSize Viewport
     | StartTimer Posix
     | UpdateTargetPoints
+    | CountDown Int
 
 
 type TrackTile

@@ -14,6 +14,7 @@ import Length exposing (inMeters)
 import Model exposing (..)
 import Point2d exposing (Point2d)
 import Ports exposing (..)
+import Process
 import Quantity
 import Task as Task exposing (perform)
 import Time as Time exposing (now)
@@ -21,7 +22,6 @@ import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
 import TrackUtils exposing (debugSpot, f, pointToIntTuple, pointToTuple)
 import Vector2d
-import Process
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -45,56 +45,8 @@ update msg model =
         ( NoOp, _ ) ->
             ( model, Cmd.none )
 
-        ( UpdatePhysics updatedBodies, Race mdl ) ->
-            let
-                newCarBodies =
-                    List.filter (\body -> body.type_ == "car") updatedBodies
-
-                otherBodies =
-                    List.filter (\body -> body.type_ /= "car") updatedBodies
-
-                oldCars =
-                    mdl.cars
-
-                updatedCars =
-                    List.filterMap
-                        (\newCarBody ->
-                            let
-                                oldCar =
-                                    List.filter (\oc -> oc.body.id == newCarBody.id) oldCars |> List.head
-                            in
-                            case oldCar of
-                                Just oc ->
-                                    let
-                                        ( targetX, targetY ) =
-                                            ( newCarBody.x, newCarBody.y )
-
-                                        updatedCar =
-                                            { oc
-                                                | body = newCarBody
-                                                , onTrack = Track.onTrack mdl.track ( targetX, targetY )
-                                            }
-                                    in
-                                    Just updatedCar
-
-                                Nothing ->
-                                    Nothing
-                        )
-                        newCarBodies
-
-                carBodies =
-                    List.map .body updatedCars
-            in
-            ( Race
-                { mdl
-                    | bodies = carBodies ++ otherBodies
-                    , cars = updatedCars
-                }
-            , Cmd.none
-            )
-
-        ( StartGenerationgTrackAndCars trackNro, Menu mdl ) ->
-            ( LoadingTrack mdl, Process.sleep 100 |> Task.perform (\_ ->  GenerateTrackAndCars trackNro))
+        ( StartGeneratingTrackAndCars trackNro, Menu mdl ) ->
+            ( LoadingTrack mdl, Process.sleep 100 |> Task.perform (\_ -> GenerateTrackAndCars trackNro) )
 
         ( GenerateTrackAndCars trackNro, LoadingTrack mdl ) ->
             let
@@ -190,40 +142,97 @@ update msg model =
                 , forces = []
                 , bodies = []
                 , cars = cars
+                , raceState = Starting 5
                 }
-            , Cmd.batch [ outgoingAddBodies (List.map .body cars), Task.perform StartTimer Time.now ]
+            , Cmd.batch [ outgoingAddBodies (List.map .body cars), Process.sleep 1000 |> Task.perform (\_ -> CountDown 4) ]
             )
 
         ( StepTime, mdl ) ->
             ( mdl, outgoingStepTime 1.1 [] )
 
-        ( SetTargetPoint carId point, Race mdl ) ->
+        ( UpdatePhysics updatedBodies, Race mdl ) ->
             let
-                targetPoint =
-                    -- if mdl.toggler then
-                    Maybe.map
-                        (\( x, y ) ->
-                            Camera.viewportToGameCoordinates
-                                mdl.camera
-                                mdl.dimensions
-                                ( round x
-                                , round y
-                                )
-                        )
-                        point
+                newCarBodies =
+                    List.filter (\body -> body.type_ == "car") updatedBodies
 
-                -- else
-                --     mdl.car.targetPoint
-                -- debug =
-                --     addDebug model.debug
-                --         (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
+                otherBodies =
+                    List.filter (\body -> body.type_ /= "car") updatedBodies
+
+                oldCars =
+                    mdl.cars
+
+                updatedCars =
+                    List.filterMap
+                        (\newCarBody ->
+                            let
+                                oldCar =
+                                    List.filter (\oc -> oc.body.id == newCarBody.id) oldCars |> List.head
+                            in
+                            case oldCar of
+                                Just oc ->
+                                    let
+                                        ( targetX, targetY ) =
+                                            ( newCarBody.x, newCarBody.y )
+
+                                        updatedCar =
+                                            { oc
+                                                | body = newCarBody
+                                                , onTrack = Track.onTrack mdl.track ( targetX, targetY )
+                                            }
+                                    in
+                                    Just updatedCar
+
+                                Nothing ->
+                                    Nothing
+                        )
+                        newCarBodies
+
+                carBodies =
+                    List.map .body updatedCars
             in
             ( Race
-                ({ mdl | toggler = not mdl.toggler }
-                    |> setTargetPoint targetPoint carId
-                )
+                { mdl
+                    | bodies = carBodies ++ otherBodies
+                    , cars = updatedCars
+                }
             , Cmd.none
             )
+
+        ( SetTargetPoint carId point, Race mdl ) ->
+            case mdl.raceState of
+                Starting _ ->
+                    ( Race mdl, Cmd.none )
+
+                Finished ->
+                    ( Race mdl, Cmd.none )
+
+                Racing ->
+                    let
+                        targetPoint =
+                            -- if mdl.toggler then
+                            Maybe.map
+                                (\( x, y ) ->
+                                    Camera.viewportToGameCoordinates
+                                        mdl.camera
+                                        mdl.dimensions
+                                        ( round x
+                                        , round y
+                                        )
+                                )
+                                point
+
+                        -- else
+                        --     mdl.car.targetPoint
+                        -- debug =
+                        --     addDebug model.debug
+                        --         (Debug.toString targetPoint ++ ", " ++ Debug.toString point)
+                    in
+                    ( Race
+                        ({ mdl | toggler = not mdl.toggler }
+                            |> setTargetPoint targetPoint carId
+                        )
+                    , Cmd.none
+                    )
 
         ( StepAnimation delta, Race mdl ) ->
             let
@@ -279,7 +288,22 @@ update msg model =
             ( maybeNextState { mdl | dimensions = Just ( round w, round h ) }, Cmd.none )
 
         ( UpdateTargetPoints, Race mdl ) ->
-            ( mdl |> updateTargetPoint, Cmd.none )
+            case mdl.raceState of
+                Starting _ ->
+                    ( Race mdl, Cmd.none )
+
+                Finished ->
+                    ( Race mdl, Cmd.none )
+
+                Racing ->
+                    ( mdl |> updateTargetPoint, Cmd.none )
+
+        ( CountDown number, Race mdl ) ->
+            if number == 0 then
+                ( Race { mdl | raceState = Racing }, Cmd.none )
+
+            else
+                ( Race { mdl | raceState = Starting <| number - 1 }, Process.sleep 1000 |> Task.perform (\_ -> CountDown <| number - 1) )
 
         ( _, mdl ) ->
             ( mdl, Cmd.none )

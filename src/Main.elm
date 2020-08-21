@@ -32,6 +32,7 @@ import Track exposing (..)
 import TrackUtils exposing (debugSpot, pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
 import Vector2d
+import Model exposing (Model(..))
 
 
 
@@ -144,17 +145,18 @@ bodyView model =
                     Nothing ->
                         []
                 )
+            , renderCountDown mdl.raceState
             ]
 
         Menu mdl ->
             h1 [] [ text "Choose track" ]
                 :: List.map
                     (\trackNro ->
-                        div [ class "track-chooser-button", onClick <| StartGenerationgTrackAndCars trackNro ] []
+                        div [ class "track-chooser-button", onClick <| StartGeneratingTrackAndCars trackNro ] []
                     )
                     (List.range
                         0
-                        10000
+                        2000
                     )
 
         Loading mdl ->
@@ -167,6 +169,12 @@ getTileSize : Int -> Int -> Int
 getTileSize pixels tileSize =
     pixels // tileSize
 
+renderCountDown : RaceState -> Html msg
+renderCountDown raceState =
+    case raceState of
+        Starting number ->
+            h1 [ class "count-down"] [text <| String.fromInt number]
+        _ -> text ""
 
 renderControlPoint : List Car -> List Renderable
 renderControlPoint cars =
@@ -388,11 +396,14 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    batch
-        [ Ports.jsToElm passData
-        , onAnimationFrameDelta StepAnimation
-        , Time.every 100 (always UpdateTargetPoints)
-        ]
+    case model of
+        Race _ ->
+            batch
+                [ Ports.jsToElm passData
+                , onAnimationFrameDelta StepAnimation
+                , Time.every 100 (always UpdateTargetPoints)
+                ]
+        _ -> Sub.none
 
 
 passData : IncomingData -> Msg

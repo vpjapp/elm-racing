@@ -51,3 +51,9 @@ canvas {
   border: 1px solid white;
   float: left;
 }
+
+h1.count-down {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+}
