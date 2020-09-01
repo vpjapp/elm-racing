@@ -26,6 +26,8 @@ type alias RaceDetails =
     , track : Track
     , cars : List Car
     , raceState: RaceState
+    , updateInProgress: Bool
+    , skippedFrames: Int
     }
 
 type RaceState
@@ -89,11 +91,13 @@ type Msg
     | StepTime
     | SetTargetPoint String (Maybe ( Float, Float ))
     | StepAnimation Float
+    | StartUpdateLoop Float
     | SetScreenSize Viewport
     | StartTimer Posix
     | UpdateTargetPoints
     | CountDown Int
     | TogglePause
+
 
 
 type TrackTile

@@ -143,6 +143,8 @@ update msg model =
                 , bodies = []
                 , cars = cars
                 , raceState = Starting 5
+                , updateInProgress = False
+                , skippedFrames = 0
                 }
             , Cmd.batch [ outgoingAddBodies (List.map .body cars), Process.sleep 1000 |> Task.perform (\_ -> CountDown 4) ]
             )
@@ -194,6 +196,7 @@ update msg model =
                 { mdl
                     | bodies = carBodies ++ otherBodies
                     , cars = updatedCars
+                    , updateInProgress = False
                 }
             , Cmd.none
             )
@@ -237,10 +240,17 @@ update msg model =
                     , Cmd.none
                     )
 
+        ( StartUpdateLoop delta, Race mdl ) ->
+            if mdl.updateInProgress then
+                ( Race { mdl | skippedFrames = mdl.skippedFrames + 1 }, Cmd.none )
+
+            else
+                ( Race { mdl | updateInProgress = True }, Process.sleep 5 |> Task.perform (\_ -> StepAnimation delta) )
+
         ( StepAnimation delta, Race mdl ) ->
             let
-                gappedDelta =
-                    min delta 100
+                gappedDelta = delta
+                    --min delta 100
 
                 forces : List ( String, Vector )
                 forces =
@@ -264,12 +274,13 @@ update msg model =
                                     shadow =
                                         Shadow.addPoint car.shadow ( car.body.x, car.body.y ) car.body.rotation (LapTimer.getTime car.lapTimer)
 
-                                    shadow2 = Debug.log "Updating shadow" <|
-                                        if LapTimer.differentLaps car.lapTimer lapTimer then
-                                            Shadow.rotate shadow (LapTimer.isBestLap lapTimer)
+                                    shadow2 =
+                                        Debug.log "Updating shadow" <|
+                                            if LapTimer.differentLaps car.lapTimer lapTimer then
+                                                Shadow.rotate shadow (LapTimer.isBestLap lapTimer)
 
-                                        else
-                                            shadow
+                                            else
+                                                shadow
                                 in
                                 { car | lapTimer = lapTimer, shadow = shadow2 }
 

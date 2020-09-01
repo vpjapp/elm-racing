@@ -409,7 +409,7 @@ subscriptions model =
                 Racing ->
                     batch
                         [ Ports.jsToElm passData
-                        , onAnimationFrameDelta StepAnimation
+                        , onAnimationFrameDelta StartUpdateLoop
                         , Time.every 100 (always UpdateTargetPoints)
                         ]
                 _ ->
