@@ -98,8 +98,10 @@ const toBodySpecs = (bodies) => {
 };
 
 const returnValue = (dataType, payload) => ({ dataType, payload });
-
+let lock = false;
 const updatePhysics = ({ delta, forces = [] }) => {
+  if (lock) return;
+  lock = true;
   // forces: {id: string, force: {x:float, y:float }}
   forces.forEach((force) => {
     const car = bodies.filter((b) => b.label === force.id)[0];
@@ -111,6 +113,11 @@ const updatePhysics = ({ delta, forces = [] }) => {
           { x: car.position.x, y: car.position.y },
           force.force
         );
+        // const vel = car.velocity.x + car.velocity.y
+        // if (vel > 40) {
+        //   car.velocity.x = 40 / x * x
+        //   car.velocity.y = 40 / y * y
+        // }
       }
 
       if (Vector.magnitude(force.force) > 0.1) {
@@ -122,12 +129,15 @@ const updatePhysics = ({ delta, forces = [] }) => {
     }
   });
 
+
   if (world.bodies.length < 1) {
+    lock = false;
     return [];
   }
   Engine.update(engine, delta);
 
   const res = toBodySpecs(bodies);
+  lock = false;
   return res;
 };
 

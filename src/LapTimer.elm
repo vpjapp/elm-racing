@@ -30,6 +30,20 @@ type TrackSequence
     = Circle (Circle2d Length.Meters Length)
     | Rectangle (Rectangle2d Length.Meters Length)
 
+isBestLap : LapTimer -> Bool
+isBestLap (LapTimer lapTimer) =
+    let
+        (_, bestTime) = lapTimer.fastestLap
+    in
+    lapTimer.lastLapTime == bestTime
+
+differentLaps: LapTimer -> LapTimer -> Bool
+differentLaps (LapTimer lapTimer1) (LapTimer lapTimer2) =
+    lapTimer1.lapNumber /= lapTimer2.lapNumber
+
+getTime : LapTimer -> Float
+getTime (LapTimer data) =
+    data.offset / 1000
 
 dummyCircle : Circle2d Length.Meters Length
 dummyCircle =

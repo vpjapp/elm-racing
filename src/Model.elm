@@ -10,6 +10,7 @@ import Length exposing (Length, Meters)
 import Point2d exposing (Point2d)
 import Time exposing (Posix)
 import Track exposing (Track)
+import Shadow exposing (Shadow)
 
 type alias Point = (Int, Int)
 
@@ -30,6 +31,7 @@ type alias RaceDetails =
 type RaceState
     = Starting Int
     | Racing
+    | Paused
     | Finished
 
 type alias Car =
@@ -38,6 +40,7 @@ type alias Car =
     , onTrack : Bool
     , carControl : CarControl
     , lapTimer : LapTimer
+    , shadow: Shadow
     }
 
 
@@ -90,6 +93,7 @@ type Msg
     | StartTimer Posix
     | UpdateTargetPoints
     | CountDown Int
+    | TogglePause
 
 
 type TrackTile

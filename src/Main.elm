@@ -26,13 +26,13 @@ import Point2d exposing (Point2d)
 import Ports exposing (..)
 import Quantity exposing (Quantity)
 import Rectangle2d exposing (Rectangle2d)
+import Shadow exposing (Shadow)
 import Task
 import Time
 import Track exposing (..)
 import TrackUtils exposing (debugSpot, pointToTuple, tupleToFloatTuple)
 import Update exposing (update)
 import Vector2d
-import Model exposing (Model(..))
 
 
 
@@ -133,6 +133,7 @@ bodyView model =
                     ++ debugOnTrack mdl.cars
                     ++ bodySpecsToRenderables mdl.resources mdl.bodies
                     ++ renderControlPoint mdl.cars
+                    ++ renderShadow mdl.cars
                 )
 
             -- , button [ onClick StepTime ] [ text "StepTime" ]
@@ -145,6 +146,7 @@ bodyView model =
                     Nothing ->
                         []
                 )
+            , button [class "pause-button", onClick TogglePause ] [ text "Pause" ]
             , renderCountDown mdl.raceState
             ]
 
@@ -165,16 +167,21 @@ bodyView model =
         LoadingTrack mdl ->
             [ h1 [] [ text "Generating track... Please wait." ] ]
 
+
 getTileSize : Int -> Int -> Int
 getTileSize pixels tileSize =
     pixels // tileSize
+
 
 renderCountDown : RaceState -> Html msg
 renderCountDown raceState =
     case raceState of
         Starting number ->
-            h1 [ class "count-down"] [text <| String.fromInt number]
-        _ -> text ""
+            h1 [ class "count-down" ] [ text <| String.fromInt number ]
+
+        _ ->
+            text ""
+
 
 renderControlPoint : List Car -> List Renderable
 renderControlPoint cars =
@@ -397,13 +404,19 @@ main =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
-        Race _ ->
-            batch
-                [ Ports.jsToElm passData
-                , onAnimationFrameDelta StepAnimation
-                , Time.every 100 (always UpdateTargetPoints)
-                ]
-        _ -> Sub.none
+        Race mdl ->
+            case mdl.raceState of
+                Racing ->
+                    batch
+                        [ Ports.jsToElm passData
+                        , onAnimationFrameDelta StepAnimation
+                        , Time.every 100 (always UpdateTargetPoints)
+                        ]
+                _ ->
+                    Sub.none
+
+        _ ->
+            Sub.none
 
 
 passData : IncomingData -> Msg
@@ -503,3 +516,28 @@ debugTrack track trackWidth =
                     }
             )
             rectangles
+
+
+renderShadow : List Car -> List Renderable
+renderShadow cars =
+    let
+        mCar =
+            cars
+                |> List.filter
+                    (\car -> car.body.id == "car-1")
+                |> List.head
+
+        maybeSpot =
+            case mCar of
+                Just car ->
+                    Shadow.getCurrentRenderSpot car.shadow
+
+                Nothing ->
+                    Nothing
+    in
+    case maybeSpot of
+        Just spot ->
+            [ debugSpot Color.charcoal spot.point 200 ]
+
+        Nothing ->
+            []

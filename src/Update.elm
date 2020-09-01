@@ -16,8 +16,8 @@ import Point2d exposing (Point2d)
 import Ports exposing (..)
 import Process
 import Quantity
+import Shadow
 import Task as Task exposing (perform)
-import Time as Time exposing (now)
 import Track exposing (fromString, fromTuples, getHeight, getWidth, startPoint)
 import TrackGenerator exposing (generateTrack)
 import TrackUtils exposing (debugSpot, f, pointToIntTuple, pointToTuple)
@@ -206,6 +206,9 @@ update msg model =
                 Finished ->
                     ( Race mdl, Cmd.none )
 
+                Paused ->
+                    ( Race mdl, Cmd.none )
+
                 Racing ->
                     let
                         targetPoint =
@@ -256,7 +259,22 @@ update msg model =
                                 lapTimer =
                                     LapTimer.update car.lapTimer ( car.body.x, car.body.y ) 16
                             in
-                            { car | lapTimer = lapTimer }
+                            if car.body.id == "car-1" then
+                                let
+                                    shadow =
+                                        Shadow.addPoint car.shadow ( car.body.x, car.body.y ) car.body.rotation (LapTimer.getTime car.lapTimer)
+
+                                    shadow2 = Debug.log "Updating shadow" <|
+                                        if LapTimer.differentLaps car.lapTimer lapTimer then
+                                            Shadow.rotate shadow (LapTimer.isBestLap lapTimer)
+
+                                        else
+                                            shadow
+                                in
+                                { car | lapTimer = lapTimer, shadow = shadow2 }
+
+                            else
+                                { car | lapTimer = lapTimer }
                         )
                         mdl.cars
 
@@ -295,6 +313,9 @@ update msg model =
                 Finished ->
                     ( Race mdl, Cmd.none )
 
+                Paused ->
+                    ( Race mdl, Cmd.none )
+
                 Racing ->
                     ( mdl |> updateTargetPoint, Cmd.none )
 
@@ -305,8 +326,33 @@ update msg model =
             else
                 ( Race { mdl | raceState = Starting <| number - 1 }, Process.sleep 1000 |> Task.perform (\_ -> CountDown <| number - 1) )
 
+        ( TogglePause, Race mdl ) ->
+            let
+                _ =
+                    Debug.log "Pause toggled" mdl.raceState
+            in
+            ( Race
+                { mdl
+                    | raceState =
+                        if mdl.raceState == Racing then
+                            Paused
+
+                        else
+                            Racing
+                }
+            , Cmd.none
+            )
+
         ( _, mdl ) ->
             ( mdl, Cmd.none )
+
+
+getCarById : List Car -> String -> Maybe Car
+getCarById updatedCars id =
+    List.filter
+        (\car -> car.body.id == id)
+        updatedCars
+        |> List.head
 
 
 getSkidMarks : List ( String, Vector ) -> List Car -> List Renderable
@@ -546,6 +592,7 @@ createCar id startIndex gridWidth carControl lapTimer =
     , onTrack = True
     , carControl = carControl
     , lapTimer = lapTimer
+    , shadow = Shadow.empty
     }
 
 
