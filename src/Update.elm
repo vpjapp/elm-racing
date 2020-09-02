@@ -146,7 +146,7 @@ update msg model =
                 , updateInProgress = False
                 , skippedFrames = 0
                 }
-            , Cmd.batch [ outgoingAddBodies (List.map .body cars), Process.sleep 1000 |> Task.perform (\_ -> CountDown 4) ]
+            , Cmd.batch [ outgoingAddBodies (List.map .body cars), Process.sleep 1000 |> Task.perform (\_ -> CountDown 5) ]
             )
 
         ( StepTime, mdl ) ->
@@ -249,9 +249,10 @@ update msg model =
 
         ( StepAnimation delta, Race mdl ) ->
             let
-                gappedDelta = delta
-                    --min delta 100
+                gappedDelta =
+                    delta
 
+                --min delta 100
                 forces : List ( String, Vector )
                 forces =
                     getCarForces mdl.cars
@@ -275,12 +276,11 @@ update msg model =
                                         Shadow.addPoint car.shadow ( car.body.x, car.body.y ) car.body.rotation (LapTimer.getTime car.lapTimer)
 
                                     shadow2 =
-                                        Debug.log "Updating shadow" <|
-                                            if LapTimer.differentLaps car.lapTimer lapTimer then
-                                                Shadow.rotate shadow (LapTimer.isBestLap lapTimer)
+                                        if LapTimer.differentLaps car.lapTimer lapTimer then
+                                            Shadow.rotate shadow (LapTimer.isBestLap lapTimer)
 
-                                            else
-                                                shadow
+                                        else
+                                            shadow
                                 in
                                 { car | lapTimer = lapTimer, shadow = shadow2 }
 
@@ -331,17 +331,13 @@ update msg model =
                     ( mdl |> updateTargetPoint, Cmd.none )
 
         ( CountDown number, Race mdl ) ->
-            if number == 0 then
+            if number == 1 then
                 ( Race { mdl | raceState = Racing }, Cmd.none )
 
             else
                 ( Race { mdl | raceState = Starting <| number - 1 }, Process.sleep 1000 |> Task.perform (\_ -> CountDown <| number - 1) )
 
         ( TogglePause, Race mdl ) ->
-            let
-                _ =
-                    Debug.log "Pause toggled" mdl.raceState
-            in
             ( Race
                 { mdl
                     | raceState =

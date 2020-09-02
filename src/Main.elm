@@ -146,7 +146,7 @@ bodyView model =
                     Nothing ->
                         []
                 )
-            , button [class "pause-button", onClick TogglePause ] [ text "Pause" ]
+            , button [ class "pause-button", onClick TogglePause ] [ text "Pause" ]
             , renderCountDown mdl.raceState
             ]
 
@@ -412,8 +412,14 @@ subscriptions model =
                         , onAnimationFrameDelta StartUpdateLoop
                         , Time.every 100 (always UpdateTargetPoints)
                         ]
+
+                Paused ->
+                    batch
+                        [ Ports.jsToElm passData ]
+
                 _ ->
-                    Sub.none
+                    batch
+                        [ Ports.jsToElm passData, onAnimationFrameDelta StartUpdateLoop ]
 
         _ ->
             Sub.none
