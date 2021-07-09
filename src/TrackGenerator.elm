@@ -46,8 +46,8 @@ generateTrack seedInt =
 
         ( isVert, seed3 ) =
             Random.step boolGen seed2
-        -- TODO allow start straight to be vertical also
 
+        -- TODO allow start straight to be vertical also
         array_ =
             Array2D.set row col (TrackTile ( col, row )) array
 
@@ -65,6 +65,7 @@ generateTrack seedInt =
 getRecursiveTrack : Array2D TrackTile -> ( Int, Int ) -> ( Int, Int ) -> Int -> Random.Seed -> TrackResult
 getRecursiveTrack track startPoint currentPoint count seed =
     if currentPoint == startPoint && count > 0 then
+        -- Track is finished, time to return
         Track ( [], seed )
 
     else
@@ -81,11 +82,13 @@ getRecursiveTrack track startPoint currentPoint count seed =
 
             nextPossibilities =
                 if count < 2 then
+                    -- Start straight
                     [ ( col, row + 1 ) ]
 
                 else
                     getNextPossiblePoints track currentPoint (count > 1) sPoint
 
+            -- Randomize the order of next possible tiles
             ( shuffledNext, seed2 ) =
                 Random.step (shuffle nextPossibilities) seed
         in
@@ -97,9 +100,11 @@ getRecursiveTrack track startPoint currentPoint count seed =
                 case trackRes of
                     Fail seed3 ->
                         let
+                            -- Add current point to the current track
                             track_ =
                                 Array2D.set row col (TrackTile ( col, row )) track
 
+                            -- A* lookup from current point to the start (is it possible to find valid track from this point)
                             returnPath =
                                 findPath
                                     straightLineCost
@@ -109,22 +114,27 @@ getRecursiveTrack track startPoint currentPoint count seed =
 
                             tres =
                                 case returnPath of
+                                    -- Yes it is possible to find valid track, move to the next point and continue
                                     Just _ ->
                                         getRecursiveTrack track_ startPoint nextPoint (count + 1) seed3
                                             |> (\res ->
                                                     case res of
+                                                        -- Valid track was found through this point, add this point to the return value
                                                         Track ( list, seedX ) ->
                                                             Track ( currentPoint :: list, seedX )
 
+                                                        -- Could not find valid path through this point
                                                         Fail seedF ->
                                                             Fail seedF
                                                )
 
+                                    -- Could not find valid track from this point. Back off and try other points
                                     Nothing ->
                                         Fail seed3
                         in
                         tres
 
+                    -- Full track has been found, return the results, effectively skip the rest nextPossible points
                     Track res ->
                         Track res
             )
